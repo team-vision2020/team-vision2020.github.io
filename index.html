@@ -19,7 +19,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.2/MathJax.js?config=TeX-AMS_CHTML-full" type="text/javascript"></script>
   <!--[if lt IE 9]>
     <script src="//cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv-printshiv.min.js"></script>
-  <![endif]-->
+    <![endif]-->
     <style>
     body {
     padding-top: 60px; /* 60px to make the container go all the way to the bottom of the topbar */
@@ -35,41 +35,152 @@
 
 <!-- Title and Name -->
 <h3>Automatic Image Filter Identification</h3>
-<span style="font-size: 20px; line-height: 1.5em;"><strong>M. Dumenci, C. Gokmen, C. Lo, J. Ye</strong></span><br>
-<span style="font-size: 18px; line-height: 1.5em;">CS 4476 Term Project, Fall 2018</span><br>
+<span style="font-size: 20px; line-height: 1.5em;"><strong>M. Dumenci, C.
+Gokmen, C. Lo, J. Ye</strong></span><br>
+<span style="font-size: 18px; line-height: 1.5em;">gtID #903246288, #903209868,
+#903225650, #903300916</span><br>
+<span style="font-size: 18px; line-height: 1.5em;">CS 4476 Term Project, Fall
+2018</span><br>
 <span style="font-size: 18px; line-height: 1.5em;">Georgia Tech</span>
 <hr>
   <h2 id="problem-statement" class="unnumbered">Problem Statement</h2>
-  <p>With the prevalence of Instagram and related social networks, filters on images are more common than ever. We attempt to build a filter identification system so viewers can be more aware of how the contents they consume are edited. Our proposed system will take a filtered image and identify what filter has been applied. We currently constrain considered filters to a simplified set that perform global (position invariant) filtering. These filters can change color, brightness, contrast, etc. and do not include rotation, shear, and transformation. Immediate extensions include expanding the filters set to include vignette effects, which vary based on location in the image, and training the system to identify the type of film camera used. A separate but related problem is to create a system for filter inversion, outputting a raw image based on a filtered image and known filter, which will be considered, time permitting.</p>
+  <p>With the prevalence of Instagram and related social networks, filters on
+  images are more common than ever. We attempt to build a filter identification
+  system so viewers can be more aware of how the contents they consume are
+  edited. Our proposed system will take a filtered image and identify what
+  filter has been applied. We currently constrain considered filters to a
+  simplified set that perform global (position invariant) filtering. These
+  filters can change color, brightness, contrast, etc. and do not include
+  rotation, shear, and transformation. Immediate extensions include expanding
+  the filters set to include vignette effects, which vary based on location in
+  the image, and training the system to identify the type of film camera used. A
+  separate but related problem is to create a system for filter inversion,
+  outputting a raw image based on a filtered image and known filter, which will
+  be considered, time permitting.</p>
   <h2 id="approach" class="unnumbered">Approach</h2>
-  <h3 id="learning-end-to-end-using-a-cnn" class="unnumbered">Learning End-to-End using a CNN</h3>
-  <p>For this project, we will try two approaches in parallel. The first, ‘brute force’ approach will involve the use of a Convolutional Neural Network. The CNN will take a filtered image as an input and output the hypothesized filter. <span class="math display">\[f(I) : \text{Image} \to \text{Filter}\]</span> We will explore various proven CNN architectures such as AlexNet, VGG, and ResNet, and compare their performance in filter identification. Because CNNs are designed for picking up image structure, which is not necessarily relevant to filter identification, various preprocessing steps such as blurring will be tested to attempt to improve the results. We believe that there’s a possibility for the CNN to learn non-goal features such as image structure, and perform poorly on global properties such as filters applied. Therefore, we will experiment with an alternate method in parallel, following a more structured approach designed to imitate human filter perception.</p>
-  <h3 id="learning-on-preselected-features" class="unnumbered">Learning on Preselected Features</h3>
-  <p>When a trained eye considers a scene with a forest, it normally expects colors in the greens and browns. When a filter is applied to this scene, we hypothesize that the shift in these expected colors allows the recognition of the filter. Then, imitating human perception, given a filtered image we want to recognize its scene and compute metrics, and run it through a classifier that returns the applied filter.</p>
-  <p>Formally, we define <span class="math inline">\(y = m(x)\)</span> to be a function from an image <span class="math inline">\(x\)</span> to a vector in <span class="math inline">\(R^n\)</span> where <span class="math inline">\(n\)</span> is the number of metrics we calculate. Each entry <span class="math inline">\(y_i\)</span> is the result of the calculation of the <span class="math inline">\(i\)</span>-th metric on the image <span class="math inline">\(x\)</span>. Similarly, we define <span class="math inline">\(z = s(x)\)</span> to be a function from an image <span class="math inline">\(x\)</span> to a vector in <span class="math inline">\(R^k\)</span> where <span class="math inline">\(k\)</span> is the total number of distinct scenes we are capable of identifying. Each element <span class="math inline">\(z_i\)</span> is the probability that the image <span class="math inline">\(x\)</span> is that of the scene <span class="math inline">\(i\)</span>, therefore <span class="math inline">\(z\)</span> is a probability vector where each element is nonnegative and the elements sum to <span class="math inline">\(1\)</span>.</p>
-  <p>Then, our target function <span class="math inline">\(g\)</span> is a classifier that, given the metrics and the scene probability vector for an image, outputs a filter probability vector: <span class="math display">\[g(m(x), s(x)) : (\text{Metrics},\ \text{Scene}) \to \text{Filter}\]</span></p>
-  <p>For every training image vector <span class="math inline">\(x\)</span> known to be in scene <span class="math inline">\(c\)</span> and the result of filter <span class="math inline">\(y\)</span>, we compute the feature vector <span class="math inline">\(m\)</span> containing our predetermined image metrics, and the scene vector <span class="math inline">\(s\)</span> where <span class="math inline">\(s_c = 1\)</span> and the rest is zero. We store this instance <span class="math inline">\(g(m, s) = y\)</span> in our knowledge base. We then train our model for <span class="math inline">\(g\)</span>, likely a Decision Tree classifier, on this knowledge base.</p>
-  <p>Then, to use the classifier on an image vector <span class="math inline">\(x&#39;\)</span>, we compute the scene probability vector <span class="math inline">\(s&#39;\)</span> using an AlexNet trained on Places <span class="citation" data-cites="Places">[3]</span> or a similar classifier, and the metrics vector <span class="math inline">\(m&#39;\)</span>. We then input the pair <span class="math inline">\(m&#39;, s&#39;\)</span> to our model for <span class="math inline">\(g\)</span> to guess the applicable filter for the image.</p>
+  <h3 id="learning-end-to-end-using-a-cnn" class="unnumbered">Learning
+  End-to-End using a CNN</h3>
+  <p>For this project, we will try two approaches in parallel. The first, ‘brute
+  force’ approach will involve the use of a Convolutional Neural Network. The
+  CNN will take a filtered image as an input and output the hypothesized filter.
+  <span class="math display">\[f(I) : \text{Image} \to \text{Filter}\]</span> We
+  will explore various proven CNN architectures such as AlexNet, VGG, and
+  ResNet, and compare their performance in filter identification. Because CNNs
+  are designed for picking up image structure, which is not necessarily relevant
+  to filter identification, various preprocessing steps such as blurring will be
+  tested to attempt to improve the results. We believe that there’s a
+  possibility for the CNN to learn non-goal features such as image structure,
+  and perform poorly on global properties such as filters applied. Therefore, we
+  will experiment with an alternate method in parallel, following a more
+  structured approach designed to imitate human filter perception.</p>
+  <h3 id="learning-on-preselected-features" class="unnumbered">Learning on
+  Preselected Features</h3>
+  <p>When a trained eye considers a scene with a forest, it normally expects
+  colors in the greens and browns. When a filter is applied to this scene, we
+  hypothesize that the shift in these expected colors allows the recognition of
+  the filter. Then, imitating human perception, given a filtered image we want
+  to recognize its scene and compute metrics, and run it through a classifier
+  that returns the applied filter.</p>
+  <p>Formally, we define <span class="math inline">\(y = m(x)\)</span> to be a
+  function from an image <span class="math inline">\(x\)</span> to a vector in
+  <span class="math inline">\(R^n\)</span> where <span class="math
+  inline">\(n\)</span> is the number of metrics we calculate. Each entry <span
+  class="math inline">\(y_i\)</span> is the result of the calculation of the
+  <span class="math inline">\(i\)</span>-th metric on the image <span
+  class="math inline">\(x\)</span>. Similarly, we define <span class="math
+  inline">\(z = s(x)\)</span> to be a function from an image <span class="math
+  inline">\(x\)</span> to a vector in <span class="math inline">\(R^k\)</span>
+  where <span class="math inline">\(k\)</span> is the total number of distinct
+  scenes we are capable of identifying. Each element <span class="math
+  inline">\(z_i\)</span> is the probability that the image <span class="math
+  inline">\(x\)</span> is that of the scene <span class="math
+  inline">\(i\)</span>, therefore <span class="math inline">\(z\)</span> is a
+  probability vector where each element is nonnegative and the elements sum to
+  <span class="math inline">\(1\)</span>.</p>
+  <p>Then, our target function <span class="math inline">\(g\)</span> is a
+  classifier that, given the metrics and the scene probability vector for an
+  image, outputs a filter probability vector: <span class="math
+  display">\[g(m(x), s(x)) : (\text{Metrics},\ \text{Scene}) \to
+  \text{Filter}\]</span></p>
+  <p>For every training image vector <span class="math inline">\(x\)</span>
+  known to be in scene <span class="math inline">\(c\)</span> and the result of
+  filter <span class="math inline">\(y\)</span>, we compute the feature vector
+  <span class="math inline">\(m\)</span> containing our predetermined image
+  metrics, and the scene vector <span class="math inline">\(s\)</span> where
+  <span class="math inline">\(s_c = 1\)</span> and the rest is zero. We store
+  this instance <span class="math inline">\(g(m, s) = y\)</span> in our
+  knowledge base. We then train our model for <span class="math
+  inline">\(g\)</span>, likely a Decision Tree classifier, on this knowledge
+  base.</p>
+  <p>Then, to use the classifier on an image vector <span class="math
+  inline">\(x&#39;\)</span>, we compute the scene probability vector <span
+  class="math inline">\(s&#39;\)</span> using an AlexNet trained on Places <span
+  class="citation" data-cites="Places">[3]</span> or a similar classifier, and
+  the metrics vector <span class="math inline">\(m&#39;\)</span>. We then input
+  the pair <span class="math inline">\(m&#39;, s&#39;\)</span> to our model for
+  <span class="math inline">\(g\)</span> to guess the applicable filter for the
+  image.</p>
   <h3 id="proposed-metrics" class="unnumbered">Proposed Metrics</h3>
   <ul>
   <li><p>Quantized color histogram</p>
-  <p>Quantize the full color spectrum into <span class="math inline">\(n\)</span> colors (proposed <span class="math inline">\(n \approx 50\)</span>), and bin image colors into the quantized colors. We will experiment with various color spaces such as RGB, HSV, and CIELab</p></li>
+  <p>Quantize the full color spectrum into <span class="math
+  inline">\(n\)</span> colors (proposed <span class="math inline">\(n \approx
+  50\)</span>), and bin image colors into the quantized colors. We will
+  experiment with various color spaces such as RGB, HSV, and CIELab</p></li>
   <li><p>Brightness histogram</p>
-  <p>Convert the image into grayscale, and bin the pixel intensities into a brightness histogram. Contract the histogram space as needed to <span class="math inline">\(n\)</span> bins (proposed <span class="math inline">\(n \approx 20\)</span>.)</p></li>
+  <p>Convert the image into grayscale, and bin the pixel intensities into a
+  brightness histogram. Contract the histogram space as needed to <span
+  class="math inline">\(n\)</span> bins (proposed <span class="math inline">\(n
+  \approx 20\)</span>.)</p></li>
   </ul>
-  <p>More metrics can be considered during experimentation, and metrics that return a vector such as histograms will be unpacked into the metric vector by counting each element as an individual metric.</p>
+  <p>More metrics can be considered during experimentation, and metrics that
+  return a vector such as histograms will be unpacked into the metric vector by
+  counting each element as an individual metric.</p>
   <h3 id="improvements" class="unnumbered">Improvements</h3>
-  <p>An immediate improvement to the feature approach stems from the concern that metrics can have high variance even within scenes, introducing ambiguity to the classification process.</p>
-  <p>To help resolve this, we can use an object detector (YOLOv2, MobileNet, ...) and tag objects in the scene. We can then treat these objects as their own images, and compute metrics for each object. This would be done within the context of the scene. (A teapot in a room is a different entity than a teapot in a forest.) As a result, each entity will have its own predictions for which filter was used locally, contributing to the decision of the filter used for the overall image. We could have a uniform vote based on most likely filter per entity, or we could combine entities’ confidences to produce image level confidences.</p>
-  <p>Another possible avenue of improvement involves the selection of metrics. The metrics we picked can be analyzed using statistical methods to reduce the number of features. Methods such as autoencoding or principal component analysis can be implemented to combine and eliminate similar metrics such that only those providing the most information would be used for the main classifier.</p>
-  <h2 id="experiments-and-results" class="unnumbered">Experiments and Results</h2>
+  <p>An immediate improvement to the feature approach stems from the concern
+  that metrics can have high variance even within scenes, introducing ambiguity
+  to the classification process.</p>
+  <p>To help resolve this, we can use an object detector (YOLOv2, MobileNet,
+  ...) and tag objects in the scene. We can then treat these objects as their
+  own images, and compute metrics for each object. This would be done within the
+  context of the scene. (A teapot in a room is a different entity than a teapot
+  in a forest.) As a result, each entity will have its own predictions for which
+  filter was used locally, contributing to the decision of the filter used for
+  the overall image. We could have a uniform vote based on most likely filter
+  per entity, or we could combine entities’ confidences to produce image level
+  confidences.</p>
+  <p>Another possible avenue of improvement involves the selection of metrics.
+  The metrics we picked can be analyzed using statistical methods to reduce the
+  number of features. Methods such as autoencoding or principal component
+  analysis can be implemented to combine and eliminate similar metrics such that
+  only those providing the most information would be used for the main
+  classifier.</p>
+  <h2 id="experiments-and-results" class="unnumbered">Experiments and
+  Results</h2>
   <h3 id="dataset" class="unnumbered">Dataset</h3>
-  <p>The aforementioned methods require large amounts of data for training, as a result of filters having identifiable characteristics only when certain knowledge about the prior image is known. Examples of such knowledge depend on the identification metric used, and can include color or brightness histograms, gradient matrices.</p>
-  <p>As the source of this data, we intend to use Yahoo’s YFCC100M dataset <span class="citation" data-cites="Yahoo">[1]</span> consisting of 100M images. We will apply the considered filters to these images, generating pairs of filter type and filtered image. This dataset will be then be used in both the CNN method and the structured method in learning filter identification.</p>
+  <p>The aforementioned methods require large amounts of data for training, as a
+  result of filters having identifiable characteristics only when certain
+  knowledge about the prior image is known. Examples of such knowledge depend on
+  the identification metric used, and can include color or brightness
+  histograms, gradient matrices.</p>
+  <p>As the source of this data, we intend to use Yahoo’s YFCC100M dataset <span
+  class="citation" data-cites="Yahoo">[1]</span> consisting of 100M images. We
+  will apply the considered filters to these images, generating pairs of filter
+  type and filtered image. This dataset will be then be used in both the CNN
+  method and the structured method in learning filter identification.</p>
   <h3 id="implementation" class="unnumbered">Implementation</h3>
-  <p>For ease of development, we will utilize Python and its various libraries for image processing and manipulation and for machine learning algorithms. We will use skimage for our image processing and feature extraction, sklearn for non neural network based machine learning algorithms, and pytorch for implementing and testing our neural network architectures. We will also leverage existing libraries such as sklearn for validation and testing. If there are no existing libraries that perform our required functionalities, we will code one up ourselves.</p>
+  <p>For ease of development, we will utilize Python and its various libraries
+  for image processing and manipulation and for machine learning algorithms. We
+  will use skimage for our image processing and feature extraction, sklearn for
+  non neural network based machine learning algorithms, and pytorch for
+  implementing and testing our neural network architectures. We will also
+  leverage existing libraries such as sklearn for validation and testing. If
+  there are no existing libraries that perform our required functionalities, we
+  will code one up ourselves.</p>
   <h3 id="filters" class="unnumbered">Filters</h3>
-  <p>Without loss of generality, we will select 5 filters based on a study by Canva on the most used Instagram filters <span class="citation" data-cites="Canva">[2]</span> which are the following:</p>
+  <p>Without loss of generality, we will select 5 filters based on a study by
+  Canva on the most used Instagram filters <span class="citation"
+  data-cites="Canva">[2]</span> which are the following:</p>
   <ul>
   <li><p>Clarendon</p></li>
   <li><p>Gingham</p></li>
@@ -77,23 +188,67 @@
   <li><p>Lark</p></li>
   <li><p>Mayfair</p></li>
   </ul>
-  <p>Luckily, these filters does not introduce any vignetting effects and are all global filters and thus are suited to our purposes. Other filters may be added during the later stages of the study.</p>
+  <p>Luckily, these filters does not introduce any vignetting effects and are
+  all global filters and thus are suited to our purposes. Other filters may be
+  added during the later stages of the study.</p>
   <h3 id="experiments" class="unnumbered">Experiments</h3>
-  <p>Our initial experimentation would limit both the number of filters we try to predict and the variation in these images to see if good results are possible under these constrained conditions. We will first evaluate each approach first based on a limited set of filters and limited set of images containing similar color distributions and then expand the existing methods to classify multiple filters. Since it is possible that color distributions will not be indicative of the result of filters, we will also limit our training images to be of similar scene and context. The progression of experimentation on applying both NN methods and heuristic methods will be based on the following:</p>
+  <p>Our initial experimentation would limit both the number of filters we try
+  to predict and the variation in these images to see if good results are
+  possible under these constrained conditions. We will first evaluate each
+  approach first based on a limited set of filters and limited set of images
+  containing similar color distributions and then expand the existing methods to
+  classify multiple filters. Since it is possible that color distributions will
+  not be indicative of the result of filters, we will also limit our training
+  images to be of similar scene and context. The progression of experimentation
+  on applying both NN methods and heuristic methods will be based on the
+  following:</p>
   <ul>
-  <li><p>Applying a single filter to training images of similar scenes/color distributions and test our methods in classifying filter type</p></li>
-  <li><p>Expand training images to include a variety of scene context and color distribution while applying a single filter</p></li>
+  <li><p>Applying a single filter to training images of similar scenes/color
+  distributions and test our methods in classifying filter type</p></li>
+  <li><p>Expand training images to include a variety of scene context and color
+  distribution while applying a single filter</p></li>
   <li><p>Expand filter set to multiple filters and test performance</p></li>
-  <li><p>Expand and test our heuristic methods to see if we can improve performance</p></li>
+  <li><p>Expand and test our heuristic methods to see if we can improve
+  performance</p></li>
   </ul>
-  <p>We consider each step to be success after reaching <span class="math inline">\(\geq 90\%\)</span> accuracy on classifying image filters using the respective classification methods. We will also pay attention to various other metrics such as precision and recall to see how our models are performing in each category.</p>
-  <p>These experiments should reveal how effective various neural network architectures are in detecting global image filter information and the “naturalness” of an image. They should also reveal whether filtered images in general are distinguishable from real photos and how good are our heuristic measures are at detecting that difference. It is uncertain whether heuristic based methods or CNNs are effective at capturing &quot;naturalness&quot; information and these experiments will reveal whether more carefully crafted feature extractions and preprocessing techniques are required to obtain good results.</p>
-  <h2 id="extension-filter-inversion" class="unnumbered">Extension: Filter Inversion</h2>
-  <p>An extension to the project upon successful completion of the primary goals is the inversion of identified filters. While the filters involved in the project are mostly functions on the pixel values individually, because the set of possible pixel values is a discrete, finite set, most of our filters involve rounding/clipping. As a result, the underlying functions are not one-to-one and thus their inversion might cause similar but distinct colors in the original image to map to identical colors in the filter-inverted image. We will apply filtering methods to correct this and to make the image look as much like the original while trying to mitigate resolution loss at the same time. Coupled with the principle goals of the project, the aim of the extension would be to produce the unfiltered original of any given input image that is the result of the application of a single filter to an unfiltered image.</p>
+  <p>We consider each step to be success after reaching <span class="math
+  inline">\(\geq 90\%\)</span> accuracy on classifying image filters using the
+  respective classification methods. We will also pay attention to various other
+  metrics such as precision and recall to see how our models are performing in
+  each category.</p>
+  <p>These experiments should reveal how effective various neural network
+  architectures are in detecting global image filter information and the
+  “naturalness” of an image. They should also reveal whether filtered images in
+  general are distinguishable from real photos and how good are our heuristic
+  measures are at detecting that difference. It is uncertain whether heuristic
+  based methods or CNNs are effective at capturing &quot;naturalness&quot;
+  information and these experiments will reveal whether more carefully crafted
+  feature extractions and preprocessing techniques are required to obtain good
+  results.</p>
+  <h2 id="extension-filter-inversion" class="unnumbered">Extension: Filter
+  Inversion</h2>
+  <p>An extension to the project upon successful completion of the primary goals
+  is the inversion of identified filters. While the filters involved in the
+  project are mostly functions on the pixel values individually, because the set
+  of possible pixel values is a discrete, finite set, most of our filters
+  involve rounding/clipping. As a result, the underlying functions are not
+  one-to-one and thus their inversion might cause similar but distinct colors in
+  the original image to map to identical colors in the filter-inverted image. We
+  will apply filtering methods to correct this and to make the image look as
+  much like the original while trying to mitigate resolution loss at the same
+  time. Coupled with the principle goals of the project, the aim of the
+  extension would be to produce the unfiltered original of any given input image
+  that is the result of the application of a single filter to an unfiltered
+  image.</p>
   <br>
-  <p>[1] B. Thomee, D.A. Shamma, G. Friedland, B. Elizalde, K. Ni, D. Poland, D. Borth, L. Li. <em>YFCC100M: The New Data in Multimedia Research</em>. Communications of the ACM, 59(2), pp. 64-73, 2016.</p>
-  <p>[2] Canva. <em>Popular Instagram Filters</em>. https://www.canva.com/learn/popular-instagram-filters/</p>
-  <p>[3] B. Zhou, A. Lapedriza, A. Khosla, A. Oliva, and A. Torralba <em>Places: A 10 million Image Database for Scene Recognition</em>. IEEE Transactions on Pattern Analysis and Machine Intelligence, 2017.</p>  
+  <p>[1] B. Thomee, D.A. Shamma, G. Friedland, B. Elizalde, K. Ni, D. Poland, D.
+  Borth, L. Li. <em>YFCC100M: The New Data in Multimedia Research</em>.
+  Communications of the ACM, 59(2), pp. 64-73, 2016.</p>
+  <p>[2] Canva. <em>Popular Instagram Filters</em>.
+  https://www.canva.com/learn/popular-instagram-filters/</p>
+  <p>[3] B. Zhou, A. Lapedriza, A. Khosla, A. Oliva, and A. Torralba <em>Places:
+  A 10 million Image Database for Scene Recognition</em>. IEEE Transactions on
+  Pattern Analysis and Machine Intelligence, 2017.</p>  
 </div>
 </div>
 <br>
