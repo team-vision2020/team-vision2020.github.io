@@ -43,7 +43,6 @@ When a trained eye considers a scene with a forest, it normally expects colors i
 Formally, we define $y = m(x)$ to be a function from an image $x$ to a vector in $R^n$ where $n$ is the number of metrics we calculate. Each entry $y_i$ is the result of the calculation of the $i$-th metric on the image $x$. Similarly, we define $z = s(x)$ to be a function from an image $x$ to a vector in $R^k$ where $k$ is the total number of distinct scenes we are capable of identifying. Each element $z_i$ is the probability that the image $x$ is that of the scene $i$, therefore $z$ is a probability vector where each element is nonnegative and the elements sum to $1$.
 
 Then, our target function $g$ is a classifier that, given the metrics and the scene probability vector for an image, outputs a filter probability vector:
-
 $$g(m(x), s(x)) : (\text{Metrics},\ \text{Scene}) \to \text{Filter}$$
 
 %More concretely, given an image $I$, compute metrics $M' = m(I)$ and scene $s$ (using AlexNet trained on Places \cite{Places}, etc.) Then, find a similar scene (``forest'', ``skyline'', ``indoors'', ...) in our metrics set built of unfiltered images, and note the metrics $M_0, \dots, M_k$ for the scene under filters $0$ (no filter) through $k$. It's likely that our image is filtered under $i$ where $\dist(M_i, M')$ is lowest. The selected metrics function $m$ will be crucial for this approach. To decide on the most descriptive, we will try various such $m$s, such as color histograms, global brightness, saturation and contrast ratio.
@@ -53,6 +52,20 @@ $$g(m(x), s(x)) : (\text{Metrics},\ \text{Scene}) \to \text{Filter}$$
 For every training image vector $x$ known to be in scene $c$ and the result of filter $y$, we compute the feature vector $m$ containing our predetermined image metrics, and the scene vector $s$ where $s_c = 1$ and the rest is zero. We store this instance $g(m, s) = y$ in our knowledge base. We then train our model for $g$, likely a Decision Tree classifier, on this knowledge base.
 
 Then, to use the classifier on an image vector $x'$, we compute the scene probability vector $s'$ using an AlexNet trained on Places \cite{Places} or a similar classifier, and the metrics vector $m'$. We then input the pair $m', s'$ to our model for $g$ to guess the applicable filter for the image.
+
+\subsubsection*{Proposed Metrics}
+
+\begin{itemize}
+    \item Quantized color histogram
+    
+    Quantize the full color spectrum into $n$ colors (proposed $n \approx 50$), and bin image colors into the quantized colors. We will experiment with various color spaces such as RGB, HSV, and CIELab
+    
+    \item Brightness histogram
+    
+    Convert the image into grayscale, and bin the pixel intensities into a brightness histogram. Contract the histogram space as needed to $n$ bins (proposed $n \approx 20$.)
+\end{itemize}
+
+More metrics can be considered during experimentation, and metrics that return a vector such as histograms will be unpacked into the metric vector by counting each element as an individual metric.
 
 % To measure closeness of histograms, we can compare various loss measures, starting with Euclidean distance. We can map distances to confidences for each filter with a softmax step. We will initially choose to not smooth our images to encourage more characterizable histograms.
 % Since the filters aren't necessarily invertible, it would be harder to map the input image backwards with each filter and see which produces metrics most typical of the scene.
@@ -96,7 +109,7 @@ The aforementioned methods require large amounts of data for training, as a resu
 As the source of this data, we intend to use Yahoo's YFCC100M dataset \cite{Yahoo} consisting of 100M images. We will apply the considered filters to these images, generating pairs of filter type and filtered image. This dataset will be then be used in both the CNN method and the structured method in learning filter identification.
 
 \subsection*{Implementation}
-For ease of development, we will utilize Python and its various libraries for image processing and manipulation and for machine learning algorithms. We will use skimage for our image processing and feature extraction, sklearn for non neural network based machine learning algorithms, and pytorch for implementing and testing our neural network architectures. We will also leverage existing libraries such as sklearn for validation and testing. 
+For ease of development, we will utilize Python and its various libraries for image processing and manipulation and for machine learning algorithms. We will use skimage for our image processing and feature extraction, sklearn for non neural network based machine learning algorithms, and pytorch for implementing and testing our neural network architectures. We will also leverage existing libraries such as sklearn for validation and testing. If there are no existing libraries that perform our required functionalities, we will code one up ourselves. 
 
 \subsection*{Filters}
 Without loss of generality, we will select 5 filters based on a study by Canva on the most used Instagram filters \cite{Canva} which are the following:
@@ -120,7 +133,7 @@ Our initial experimentation would limit both the number of filters we try to pre
 
 We consider each step to be success after reaching $\geq 90\%$ accuracy on classifying image filters using the respective classification methods. We will also pay attention to various other metrics such as precision and recall to see how our models are performing in each category.
 
-These experiments should reveal how effective various neural network architectures are in detecting global image filter information and the ``naturalness'' of an image. They should also reveal whether filters in general are distinguishable from real photos and how good are heuristic measures are at detecting that difference. It is certainly uncertain whether heuristic based methods or CNNs are effective at capturing "naturalness" information and these experiments will certainly reveal whether more carefully crafted feature extractions and preprocessing are required to obtain good results. 
+These experiments should reveal how effective various neural network architectures are in detecting global image filter information and the ``naturalness'' of an image. They should also reveal whether filtered images in general are distinguishable from real photos and how good are our heuristic measures are at detecting that difference. It is uncertain whether heuristic based methods or CNNs are effective at capturing "naturalness" information and these experiments will reveal whether more carefully crafted feature extractions and preprocessing techniques are required to obtain good results. 
 
 \section*{Extension: Filter Inversion}
 An extension to the project upon successful completion of the primary goals is the inversion of identified filters. While the filters involved in the project are mostly functions on the pixel values individually, because the set of possible pixel values is a discrete, finite set, most of our filters involve rounding/clipping. As a result, the underlying functions are not one-to-one and thus their inversion might cause similar but distinct colors in the original image to map to identical colors in the filter-inverted image. We will apply filtering methods to correct this and to make the image look as much like the original while trying to mitigate resolution loss at the same time. Coupled with the principle goals of the project, the aim of the extension would be to produce the unfiltered original of any given input image that is the result of the application of a single filter to an unfiltered image.
