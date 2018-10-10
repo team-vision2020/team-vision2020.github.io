@@ -49,9 +49,9 @@ $$g(m(x), s(x)) : (\text{Metrics},\ \text{Scene}) \to \text{Filter}$$
 
 % The metric function $m$ will be a feature vector resulting from a variety of preprocessing and feature extraction techniques determined experimentally. The scene function $s$ will be an AlexNet trained on the Places dataset\cite{Places}.
 
-For every training image vector $x$ known to be in scene $c$ and the result of filter $y$, we compute the feature vector $m$ containing our predetermined image metrics, and the scene vector $s$ where $s_c = 1$ and the rest is zero. We store this instance $g(m, s) = y$ in our knowledge base. We then train our model for $g$, likely a Decision Tree classifier, on this knowledge base.
+For every training image vector $x$, we apply the filter $y$ and run a scene classifier such as AlexNet trained on Places \cite{Places} to get a scene probability vector $s'$. We then compute the feature vector $m$ containing our predetermined image metrics, and store the instance $g(m, s) = y$ in our knowledge base. We then train our model for $g$, likely a Decision Tree classifier, on this knowledge base.
 
-Then, to use the classifier on an image vector $x'$, we compute the scene probability vector $s'$ using an AlexNet trained on Places \cite{Places} or a similar classifier, and the metrics vector $m'$. We then input the pair $m', s'$ to our model for $g$ to guess the applicable filter for the image.
+Then, to use the classifier on an image vector $x'$, we compute the scene probability vector $s'$ using the same scene classifier, and the metrics vector $m'$. We then input the pair $m', s'$ to our model for $g$ to guess the applicable filter for the image.
 
 \subsubsection*{Proposed Metrics}
 
@@ -106,7 +106,7 @@ Another possible avenue of improvement involves the selection of metrics. The me
 \subsection*{Dataset}
 The aforementioned methods require large amounts of data for training, as a result of filters having identifiable characteristics only when certain knowledge about the prior image is known. Examples of such knowledge depend on the identification metric used, and can include color or brightness histograms, gradient matrices.
 
-As the source of this data, we intend to use Yahoo's YFCC100M dataset \cite{Yahoo} consisting of 100M images. We will apply the considered filters to these images, generating pairs of filter type and filtered image. This dataset will be then be used in both the CNN method and the structured method in learning filter identification.
+As the source of this data, we intend to use Yahoo's YFCC100M dataset \cite{Yahoo} consisting of 100M images. We will apply the considered filters to a reasonably trainable subset of these images (to be decided empirically), generating pairs of filter type and filtered image. This dataset will be then be used in both the CNN method and the structured method in learning filter identification.
 
 \subsection*{Implementation}
 For ease of development, we will utilize Python and its various libraries for image processing and manipulation and for machine learning algorithms. We will use skimage for our image processing and feature extraction, sklearn for non neural network based machine learning algorithms, and pytorch for implementing and testing our neural network architectures. We will also leverage existing libraries such as sklearn for validation and testing. If there are no existing libraries that perform our required functionalities, we will code one up ourselves. 
