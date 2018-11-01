@@ -513,15 +513,17 @@
             <p>Supporting our intuition, our preliminary experiments with filter identification using scene information perform better than a random baseline as described in <em>Experiments</em>, meaning there is latent color information embedded in a scene.</p>
             <p>For further granularity, an alternative route we will investigate is running object detection with Mask R-CNN <span class="citation"></span> and running filter detection with objects as features. The objects will then vote on a global filter, using weights derived from their sizes and prediction confidence. As a similar (but more complex) idea to the scene approach, we expect this method to give us the best results as granular objects are expected to have the most uniform color distributions across instances. However, we expect roadblocks due to difficulty of modifying the intensive net required for MaskRCNN.</p>
             <p>To improve filter inversion, the next steps will be removing the discrete filter selection step between the detection and inversion models, directly providing the inversion subsystem with the filter probability vector. This should allow the inversion model to compute more nuanced inversions by combining the inversion of several filters depending on the certainty of the classifier. The result should allow us to create a more generic filter inverter which can take in additional features to enhance the inversion results.</p>
-            <p><span>9</span> C. Chen and M. C. Stamm, “Image filter identification using demosaicing residual features,” 2017 IEEE International Conference on Image Processing (ICIP), Beijing, 2017, pp. 4103-4107.</p>
-            <p>F. Chollet and others, “Keras”, GitHub, 2015.</p>
-            <p>D. P. Kingma and J. Ba, “Adam: A Method for Stochastic Optimization”, 3rd International Conference for Learning Representations, San Diego, 2015.</p>
-            <p>M. Pratusevich, “Instagram Filters in 15 Lines of Python”, Practice Python, 2016. <em>Retrieved from URL, https://www.practicepython.org/blog/2016/12/20/instagram-filters-python.html</em>.</p>
-            <p>GraphixTV, “Instagram Filter Effects Tutorials”, YouTube, 2017. <em>Retrieved from URL, https://www.youtube.com/playlist?list=PLESCEzav4FyfUIi0RHMkNbQI-9JVr4kJc</em></p>
-            <p>H. Kaiming, G. Gkioxari, P. Doll<span>á</span>r and R. B. Girshick, “Mask R-CNN”, Facebook AI Research, 2018.</p>
-            <p>B. Zhou, A. Lapedriza, A. Khosla, A. Oliva, and A. Torralba “Places: A 10 million Image Database for Scene Recognition”, IEEE Transactions on Pattern Analysis and Machine Intelligence, 2017.</p>
-            <p>C. Chen, C. Chen, J. Xu, and V. Koltun, “Learning to See in the Dark”, CVPR, 2018.</p>
-            <p>R. K. Srivastava, J. Masci, F. Gomez and J. Schmidhuber, “Understanding Locally Competitive Networks”, ICLR, 2015.</p>
+
+            <h2 id="references" class="unnumbered">References</h2>
+            <p>[1] C. Chen and M. C. Stamm, “Image filter identification using demosaicing residual features,” 2017 IEEE International Conference on Image Processing (ICIP), Beijing, 2017, pp. 4103-4107.</p>
+            <p>[2] F. Chollet and others, “Keras”, GitHub, 2015.</p>
+            <p>[3] D. P. Kingma and J. Ba, “Adam: A Method for Stochastic Optimization”, 3rd International Conference for Learning Representations, San Diego, 2015.</p>
+            <p>[4] M. Pratusevich, “Instagram Filters in 15 Lines of Python”, Practice Python, 2016. <em>Retrieved from URL, https://www.practicepython.org/blog/2016/12/20/instagram-filters-python.html</em>.</p>
+            <p>[5] GraphixTV, “Instagram Filter Effects Tutorials”, YouTube, 2017. <em>Retrieved from URL, https://www.youtube.com/playlist?list=PLESCEzav4FyfUIi0RHMkNbQI-9JVr4kJc</em></p>
+            <p>[6] H. Kaiming, G. Gkioxari, P. Doll<span>á</span>r and R. B. Girshick, “Mask R-CNN”, Facebook AI Research, 2018.</p>
+            <p>[7] B. Zhou, A. Lapedriza, A. Khosla, A. Oliva, and A. Torralba “Places: A 10 million Image Database for Scene Recognition”, IEEE Transactions on Pattern Analysis and Machine Intelligence, 2017.</p>
+            <p>[8] C. Chen, C. Chen, J. Xu, and V. Koltun, “Learning to See in the Dark”, CVPR, 2018.</p>
+            <p>[9] R. K. Srivastava, J. Masci, F. Gomez and J. Schmidhuber, “Understanding Locally Competitive Networks”, ICLR, 2015.</p>
 
           </div>
         </div>
