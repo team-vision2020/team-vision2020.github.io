@@ -7,289 +7,524 @@
   <meta name="description" content="">
   <meta name="author" content="">
 
-<!-- Le styles -->
-  <link href="css/bootstrap.css" rel="stylesheet">
+  <!-- Le styles -->
+  <!-- Latest compiled and minified CSS -->
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+
+  <!-- Optional theme -->
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap-theme.min.css" integrity="sha384-rHyoN1iRsVXV4nD0JutlnGaslCJuC7uwjduW9SVrLvRYooPp2bWYgmgJQIXwl/Sp" crossorigin="anonymous">
+
+  <!-- Latest compiled and minified JavaScript -->
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+
   <style type="text/css">
-      code{white-space: pre-wrap;}
-      span.smallcaps{font-variant: small-caps;}
-      span.underline{text-decoration: underline;}
-      div.line-block{white-space: pre-line;}
-      div.column{display: inline-block; vertical-align: top; width: 50%;}
+  code{white-space: pre-wrap;}
+  span.smallcaps{font-variant: small-caps;}
+  span.underline{text-decoration: underline;}
+  div.line-block{white-space: pre-line;}
+  div.column{display: inline-block; vertical-align: top; width: 50%;}
+  p{margin-top: 2em;}
+  table {
+    table-layout: fixed;
+}
   </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.2/MathJax.js?config=TeX-AMS_CHTML-full" type="text/javascript"></script>
   <!--[if lt IE 9]>
-    <script src="//cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv-printshiv.min.js"></script>
-    <![endif]-->
-    <style>
-    body {
+  <script src="//cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv-printshiv.min.js"></script>
+  <![endif]-->
+  <style>
+  body {
     padding-top: 60px; /* 60px to make the container go all the way to the bottom of the topbar */
-    }
-    </style>
+  }
+  </style>
 
-    <link href="css/bootstrap-responsive.min.css" rel="stylesheet">
+  <link href="css/bootstrap-responsive.min.css" rel="stylesheet">
 </head>
 
 <body>
-<div class="container">
-<div class="page-header">
+  <div class="container">
+    <div class="page-header">
 
-<!-- Title and Name -->
-<h4>Automatic Image Filter Identification</h4>
-<span style="font-size: 20px; line-height: 1.5em;"><strong>Mert Dumenci, Cem
-Gokmen, Chunlok Lo, Joel Ye</strong></span><br>
-<span style="font-size: 18px; line-height: 1.5em;">CS 4476 Term Project, Fall
-2018</span><br>
-<span style="font-size: 18px; line-height: 1.5em;">Georgia Tech</span>
-<hr>
+      <!-- Title and Name -->
+      <h2>Automatic Image Filter Identification</h2>
+      <span style="font-size: 20px; line-height: 1.5em;"><strong>Mert Dumenci, Cem
+        Gokmen, Chunlok Lo, Joel Ye</strong></span><br>
+        <span style="font-size: 18px; line-height: 1.5em;">CS 4476 Term Project, Fall
+          2018</span><br>
+          <span style="font-size: 18px; line-height: 1.5em;">Georgia Tech</span>
+          <hr>
 
-<h2 id="abstract" class="unnumbered">Abstract</h2>
-<p>Given the prevalence of photo editing and filtering on popular social media platforms such as Snapchat and Instagram, it is becoming more and more difficult for users to identify how the content that they consume everyday have been modified from their original form. Since filtering has become so common, the goal of this project is to give users a means to identify how photos on these platforms are edited and to present a plausible reconstruction of source content.</p>
-<p>We propose an end-to-end system that will take an image from the user, identify probabilities for which common image filters were applied to the image, and apply the most likely filter inverse. We present both the filter probabilities and the inverted image to the user. We utilize features in the form of color histograms and scene details to extract a sense of natural color distributions and use neural networks both to determine the probabilities for applied filters and to invert an image given its most likely filter.</p>
-<p>From our experiments, we are able to classify images by the filter applied to it (from our predefined set of six Instagram filters) while distinguishing it from natural (unfiltered) images with an accuracy of 60% to 98% depending on the characteristics of the filter such as the amount of deviation from the original image. Let <span class="math inline">\(E(I, I&#39;)\)</span> be the average per-pixel mean of the sum absolute differences in intensity across all color channels of images <span class="math inline">\(I\)</span> and <span class="math inline">\(I&#39;\)</span> (<em>Equation 1</em>). For inverting images given a known filter, we are able to obtain a pseudo-inverse of the image with an average error <span class="math inline">\(E\)</span> of 1%. End-to-end, our system detects and inverts filters with an average error <span class="math inline">\(E\)</span> of 5.5% between our output image and the original unfiltered version. In comparison, the baseline error <span class="math inline">\(E\)</span> between filtered and unfiltered images was found to be 8.4%.</p>
-<h2 id="teaser-figure" class="unnumbered">Teaser Figure</h2>
-<div class="figure">
-<img src="images/gingham.jpg" alt="Architecture overview" width="75" />
-<p class="caption">Architecture overview<span data-label="fig:overview"></span></p>
-</div>
-<p>&amp; [swap]<span>P()</span> &amp; &amp; &amp; &amp;</p>
-<div class="figure">
-<img src="images/original.jpg" alt="Architecture overview" width="75" />
-<p class="caption">Architecture overview<span data-label="fig:overview"></span></p>
-</div>
-<h2 id="introduction" class="unnumbered">Introduction</h2>
-<p>Filtered photos have become ubiquitous on social media platforms such as Snapchat, Instagram, Flickr, and more. For the casual eye, the subtlety of these filters can make it hard to distinguish between filtered and unfiltered images on social media, leading to a false perceptual model of how natural images look, skewing our expectations about reality. We hope this project will help bring more transparency into how images are often edited by identifying whether a common image filter have been applied to an image, and expose users to the natural state of these images. We believe that transparency in the image editing process is important in raising awareness about deliberate modifications to perceptions of reality, allowing content consumers to enjoy the edited content while being aware of their true nature.</p>
-<p>Not to be confused with filters in the computer vision setting, which are often used to better extract information from an image, filters in the social media setting describe a predefined set of modifications to an image that attempts enhance its human visual appeal. Most commonly, these filters come in the form of color balance adjustments and can be represented as tweaks to the color curves of an RGB image. A color curve <span class="math inline">\(f: [0, 255] \to [0, 255]\)</span> is a continuous function that remaps the intensities in each color channel. Modification to the color curve allows the user to non-uniformly boost or decrease color intensities at varying ranges to create various effects such as increasing contrast or creating color shifts (e.g. [fig:color_curve] demonstrates a boost of blues in shadows while decreasing blues in highlights). Some filters also include additional effects such as blurring/sharpening using convolution kernels, the addition of borders, and the application of vignette darkening at the edges.</p>
-<div class="figure">
-<img src="images/ampitheatre_before.jpg" alt="Example of Color Curve Modification on The Blue Color Channel" width="75" />
-<p class="caption">Example of Color Curve Modification on The Blue Color Channel<span data-label="fig:color_curve"></span></p>
-</div>
-<p>&amp;</p>
-<div class="figure">
-<img src="images/curve.JPG" alt="Example of Color Curve Modification on The Blue Color Channel" width="75" />
-<p class="caption">Example of Color Curve Modification on The Blue Color Channel<span data-label="fig:color_curve"></span></p>
-</div>
-<p>&amp;</p>
-<div class="figure">
-<img src="images/curveAfter.JPG" alt="Example of Color Curve Modification on The Blue Color Channel" width="75" />
-<p class="caption">Example of Color Curve Modification on The Blue Color Channel<span data-label="fig:color_curve"></span></p>
-</div>
-<p>&amp;</p>
-<div class="figure">
-<img src="images/ampitheatre_after.jpg" alt="Example of Color Curve Modification on The Blue Color Channel" width="75" />
-<p class="caption">Example of Color Curve Modification on The Blue Color Channel<span data-label="fig:color_curve"></span></p>
-</div>
-<p>For the purposes of this project, we limit our scope and define a filter as a pair <span class="math inline">\((f, g)\)</span> where <span class="math inline">\(f: \mathbb{R}^3 \rightarrow \mathbb{R}^3\)</span> is a function that maps every individual color (consisting of 3 channels each with a real value in the <span class="math inline">\([0, 1]\)</span> range) to some color in the same range, and <span class="math inline">\(g \in \mathbb{R}^{3 \times 3}\)</span> is a convolution kernel that can be used for blurring and sharpening among other effects. We assume that a filter is applied first by passing each pixel of an image through <span class="math inline">\(f\)</span>, and then convolving the image with <span class="math inline">\(g\)</span>, extending the edges by repeating the last row and column of pixels as to preserve the shape of the image.</p>
-<p>While many commercial filters may also contain additional effects such as borders and vignettes, filters are mostly characterized by how they shift the color curves globally and their blur/sharpen/emboss effects. Therefore, for the scope of this project, we choose filters which does not have these additional effect.</p>
-<p>Though our work relates to many other fields of computer vision, such as image denoising and brightening images <span class="citation"></span>, not much work directly focuses on end to end filter identification or inversion. One publication that we found <span class="citation"></span> for identification depends heavily on prior knowledge of the camera demosaicing algorithm which is not always readily available. We thus chose to develop our own identification system.</p>
-<p>In many of these settings such as image denoising or brightening, the modifications applied to the image (noise, etc.) are either consistent across the dataset or is known a priori. Our task is different from these previous work as our filter functions are unknown, but we have examples of unfiltered &amp; filtered images. Therefore, we decompose this task of filter inversion into two separate tasks, one is filter identification given an input image and the other is filter inversion given a known filter. Filter identification for an image is a classification task while filter inversion is a regression task estimating the filter inverses.</p>
-<h2 id="approach" class="unnumbered">Approach</h2>
-<p>Our approach splits the end-to-end task of filter inversion into two steps:</p>
-<ul>
-<li><p>Generate a probability vector for possible filters applied to a given image. (Filter classification)</p></li>
-<li><p>With the image and the probability vector as inputs, apply a learned inverse filter onto the image to recover the unfiltered image. (Filter inversion)</p></li>
-</ul>
-<p>While there are infinitely many filters possible, popular social media platforms have a few pre-selected filters that are widely used. Therefore, we constrain the scope of our filter inversion by assuming input images were filtered at most once by a filter from a known set. To accurately model a real-world application, our list comprises of the following six popular Instagram filters:</p>
-<p><br />
-</p>
-<p>Given the scant amount of existing literature on the problem of filter identification aside from <span class="citation"></span>, there were no established processes for filtering large numbers of images using commercial filters. We were prompted to create our own image filtering pipeline. Since Instagram filters are not available outside of their platform, we imitated these filters by manually modifying each color curve. We referenced channel adjustment code from an online article <span class="citation"></span>, which uses <code>numpy</code> functions, specifically <code>linspace</code> and <code>interp</code>, to modify the color curves of each specific channel. We obtained curve parameters for each filter from <span class="citation"></span> and passed them onto the channel adjustment code to create an imitation of commercial filters. We then run each imitation filter over our library of unfiltered images to create our dataset.</p>
-<h3 id="filter-classification" class="unnumbered">Filter classification</h3>
-<p>Our approach to filter classification takes in an input image and outputs a probability vector for the possible filters applied to the input image. We utilize a neural network model to generate this probability vector from features extracted from the input image.</p>
-<p>For feature extraction, because color curves are a major component of many of the popular image filters, we decided to use color histograms to extract global color information from the image. Furthermore, because these color curve modifications are often applied independently in each RGB channel, we create separate color intensity histograms for each color channel and concatenate them together to generate the features for a given image.</p>
-<p>Note that this low level data can be augmented with scene and object information, premised on the idea that color distributions are correlated to the subjects and the environment of the image. This augmentation has not yet been incorporated into the pipeline.</p>
-<p>Due to the lack of neural network based approaches in the previous work done in this area, we had no intuition on the appropriate complexity required for our models. Therefore, we first experimented with the simplest models with one layer and few neurons, found it performed poorly, and gradually increased complexity until diminishing return on performance occurred.</p>
-<p>We utilize Keras <span class="citation"></span> to create a sequential, feed-forward neural network with varying number of layers at different sizes with the ReLU activation function on the hidden layers. The network ends with a softmax layer to obtain a probability vector. We use the ReLU activation function because it has been consistently shown to provide good performance and training speed for neural networks <span class="citation"></span>. We use a cross-entropy loss function and the Adam optimizer <span class="citation"></span> to train our neural network model.</p>
-<p>One problem we encountered was that because each image passes through 6 different filters and each of these images are in our dataset, we have to ensure that our model has not seen the images before to avoid memorizing previous image color distributions to obtain good results in the testing set. Therefore, we utilize a completely different set of base images for the training and testing set.</p>
-<div class="figure">
-<img src="images/detection-nn.png" alt="Detection NN Architecture" style="width:60.0%" />
-<p class="caption">Detection NN Architecture<span data-label="fig:detection_nn"></span></p>
-</div>
-<h3 id="filter-inversion" class="unnumbered">Filter inversion</h3>
-<p>For the inversion of filters, our formalization of a filter is critical. We assume the definition of a filter as a pair <span class="math inline">\((f, g)\)</span> of a function <span class="math inline">\(f\)</span> that maps colors and a convolution kernel <span class="math inline">\(g\)</span>.</p>
-<p>With this assumption, we design a set neural networks to approximate the behavior of an inverse filter. The specification of the neural network for one filter <span class="math inline">\((f, g)\)</span> is such that given a <span class="math inline">\(3 \times 3\)</span> region of pixels, it should be able to learn and undo the convolution <span class="math inline">\(g\)</span> centered at the middle of the square, then learn and apply the inverse of the function <span class="math inline">\(f\)</span>, finally outputting the unfiltered color of the middle pixel of the patch.</p>
-<p>We set up a neural network model with an input of <span class="math inline">\(3 \times 3 \times 3\)</span> values to represent the RGB colors of the <span class="math inline">\(3 \times 3\)</span> patch, an output of <span class="math inline">\(3\)</span> values to represent the RGB colors of the center pixel, and three hidden layers with <span class="math inline">\(100\)</span> neurons each, to account for potential non-linearities of <span class="math inline">\(f\)</span>. We note that since <span class="math inline">\((f, g)\)</span> are specific to each filter, we will need to train a separate copy of this model for each of our supported filters.</p>
-<p>Given a filter, to train a neural network with sufficient data to allow it to generalize properly, we generate 1 million uniformly random <span class="math inline">\(3 \times 3\)</span> RGB patches and apply the filter to all of them. We then store the filtered <span class="math inline">\(3 \times 3\)</span> patches as input <span class="math inline">\(X\)</span> and the center pixel of the unfiltered patches as <span class="math inline">\(y\)</span>. Every such <span class="math inline">\((X, y)\)</span> forms one sample, and we train our neural network on 1 million such samples until validation score plateaus.</p>
-<p>Finally, to apply filter inversion to a given image known to be the result of a particular filter <span class="math inline">\(f\)</span>, we iterate through the image using a <span class="math inline">\(3 \times 3\)</span> sliding window, and for each step of the iteration we feed the window into the pre-trained neural network corresponding to <span class="math inline">\(f\)</span>. The model outputs the predicted unfiltered color of the pixel at the center of the image, which we store in a copy of the image. Repeating this operation over patches centered at each pixel on the image, we reach the predicted unfiltered image.</p>
-<p>Note that due to the fact that our model is based on filter functions that we define and implement, it was also possible to attempt to invert all of our filters deterministically that aimed to undo each step of the filter. However, since we do not know the exact function behind the filters used on Instagram, et al. such a method would not be applicable on images filtered using filters whose source code we cannot access, such as images on social media. As a result, we opt for a machine learning method, so that given a sufficiently large dataset of filtered images (alongside their unfiltered counterparts), we can learn to invert any filter that our definition of a filter can represent.</p>
-<h2 id="experiments" class="unnumbered">Experiments</h2>
-<p>We perform our experiments using 9000 <span class="math inline">\(128\ \times\ 128\)</span> images from 10 different categories from the MiniPlaces dataset <span class="citation"></span> passed through 6 different filters ([fig:filters]) to create a total dataset of 63000 images (including the original images.) We split these images into 80% training and 20% testing sets with assurance that images from the testing set and their filtered derivatives are not in the training set. Therefore, our training set consists of 50400 images while our testing set consisted of 12600 images.</p>
-<p><span class="math display">\[\begin{aligned}
-        \text{7200 images} \times \text{6 filters} + \text{7200 original images} &amp;= \text{50400 training images}\\
-        \text{1800 images} \times \text{6 filters} + \text{1800 original images} &amp;= \text{12600 testing images}
-    \end{aligned}\]</span></p>
-<p>While we experimented with greyscale color histogram at first for its simplicity, the important role of color in filter identification pushed us towards our current feature extraction method. And because filters often modify color curves within the RGB space, we decided to extract three separate color intensity histogram in the RGB channel and concatenate them together as our image feature. We use 255 bins per color channel, which were represented as floats in the range [0, 1]. No meaningful performance gain was observed when increasing the number of bins past 255. Our neural network hyperparameters were tuned through manual search by starting with a simple model and increasing model complexity until no apparent improvements was noticed.</p>
-<p>Given the simplicity of features we extract, we expected a simple model to provide comparative performance in the filter identification task. However, after experimentation, adding multiple layers to our model increased our model accuracy by upwards of 8%. It is possible that applying a filter might affect an image’s color histogram in more complex ways than we assumed and increasing the number of layers enabled the network to better understand the effect of filter application on an image’s color histogram.</p>
-<p>Our final neural network contains four size 32 layers, one size 16 layer, two size 8 layers, and an output softmax layer with 7 nodes, in that order. The network is fully connected and every layer except the last uses <em>ReLU</em> activation. The softmax layer produces a probability vector for the predicted filter. An input feature vector for this model contains <span class="math inline">\(255 \times 3 = 765\)</span> features. The main hyperparameter for future experimentation is the number of bins used here, or in general, what we choose to feed into our network. When stepping through increasing bin count, we found performance plateaued at 255 bins.</p>
-<p>We trained our neural network classifier for a total of 100 epochs with a batch size of 128 using the Adam optimizer <span class="citation"></span> and the cross-entropy loss function.</p>
-<p>One improvement to note is that we did not utilize validation set (which we should have) during our training process so we do not have an exact measure of overfitting. However, we evaluated our model performance different number of epochs and there were no noticeable increase accuracy from stopping before or going past 100 epochs.</p>
-<div class="figure">
-<img src="images/confusionMatrix.jpg" alt="Confusion matrix for detection NN" style="width:60.0%" />
-<p class="caption">Confusion matrix for detection NN<span data-label="fig:confusion_matrix"></span></p>
-</div>
-<p>Our initial approach evaluated our model based on the overall accuracy in the prediction (filter with maximum probability from our probability vector). However, we noticed visually subtler filters naturally had lower identification rates, so we refined our statistics to distinguish success for different filters. We thus also looked at the precision, recall, F1 score, and the confusion matrix to evaluate model performance on individual filters. For comparison, the baseline accuracy of a random classifier is 0.143.</p>
-<table>
-<thead>
-<tr class="header">
-<th align="center"></th>
-<th align="center"><em>Identity</em></th>
-<th align="center"><em>Clarendon</em></th>
-<th align="center"><em>Gingham</em></th>
-<th align="center"><em>Juno</em></th>
-<th align="center"><em>Lark</em></th>
-<th align="center"><em>Gotham</em></th>
-<th align="center"><em>Reyes</em></th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td align="center"><em>Precision</em></td>
-<td align="center">0.635</td>
-<td align="center">0.760</td>
-<td align="center">0.944</td>
-<td align="center">0.625</td>
-<td align="center">0.647</td>
-<td align="center">0.879</td>
-<td align="center">0.921</td>
-</tr>
-<tr class="even">
-<td align="center"><em>Recall</em></td>
-<td align="center">0.554</td>
-<td align="center">0.693</td>
-<td align="center">0.984</td>
-<td align="center">0.638</td>
-<td align="center">0.695</td>
-<td align="center">0.939</td>
-<td align="center">0.929</td>
-</tr>
-<tr class="odd">
-<td align="center"><em>F1</em></td>
-<td align="center">0.591</td>
-<td align="center">0.725</td>
-<td align="center">0.964</td>
-<td align="center">0.631</td>
-<td align="center">0.670</td>
-<td align="center">0.908</td>
-<td align="center">0.925</td>
-</tr>
-</tbody>
-</table>
-<table>
-<thead>
-<tr class="header">
-<th align="center"></th>
-<th align="center"><em>Identity</em></th>
-<th align="center"><em>Clarendon</em></th>
-<th align="center"><em>Gingham</em></th>
-<th align="center"><em>Juno</em></th>
-<th align="center"><em>Lark</em></th>
-<th align="center"><em>Gotham</em></th>
-<th align="center"><em>Reyes</em></th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td align="center"><em>Precision</em></td>
-<td align="center">0.643</td>
-<td align="center">0.684</td>
-<td align="center">0.954</td>
-<td align="center">0.681</td>
-<td align="center">0.677</td>
-<td align="center">0.904</td>
-<td align="center">0.906</td>
-</tr>
-<tr class="even">
-<td align="center"><em>Recall</em></td>
-<td align="center">0.583</td>
-<td align="center">0.786</td>
-<td align="center">0.975</td>
-<td align="center">0.580</td>
-<td align="center">0.673</td>
-<td align="center">0.946</td>
-<td align="center">0.935</td>
-</tr>
-<tr class="odd">
-<td align="center"><em>F1</em></td>
-<td align="center">0.612</td>
-<td align="center">0.731</td>
-<td align="center">0.964</td>
-<td align="center">0.626</td>
-<td align="center">0.675</td>
-<td align="center">0.925</td>
-<td align="center">0.920</td>
-</tr>
-</tbody>
-</table>
-<table>
-<thead>
-<tr class="header">
-<th align="center"></th>
-<th align="center"><em>Identity</em></th>
-<th align="center"><em>Clarendon</em></th>
-<th align="center"><em>Gingham</em></th>
-<th align="center"><em>Juno</em></th>
-<th align="center"><em>Lark</em></th>
-<th align="center"><em>Gotham</em></th>
-<th align="center"><em>Reyes</em></th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td align="center"><em>Precision</em></td>
-<td align="center">0.620</td>
-<td align="center">0.720</td>
-<td align="center">0.936</td>
-<td align="center">0.568</td>
-<td align="center">0.781</td>
-<td align="center">0.894</td>
-<td align="center">0.940</td>
-</tr>
-<tr class="even">
-<td align="center"><em>Recall</em></td>
-<td align="center">0.550</td>
-<td align="center">0.789</td>
-<td align="center">0.984</td>
-<td align="center">0.775</td>
-<td align="center">0.463</td>
-<td align="center">0.956</td>
-<td align="center">0.883</td>
-</tr>
-<tr class="odd">
-<td align="center"><em>F1</em></td>
-<td align="center">0.583</td>
-<td align="center">0.753</td>
-<td align="center">0.959</td>
-<td align="center">0.656</td>
-<td align="center">0.582</td>
-<td align="center">0.924</td>
-<td align="center">0.910</td>
-</tr>
-</tbody>
-</table>
-<p>One interesting trend to examine is the performance difference among different filters. Filters like Gingham, Gotham, and Reyes easily achieve an <em>F1 score</em> of over 0.9 while other filters’ <em>F1 scores</em> all fall below 0.8. We believe that this is attributed to how large of a visual effect these filters have on the output image, as illustrated in [fig:filters].</p>
-<p>These filters are quite obvious when compared side by side to the original filter, or more technically, consider the difference in tone shifts between each of these different filters. We believe the tone shifts within Gingham, Gotham, and Reyes appear more unnatural (Gingham and Gotham gives a red tint while Reyes gives an overall white tint to the image) whereas Juno, Lark, and Clarendon appear more natural by adding blueish, greenish, or yellowish lighting to the image, making them harder to distinguish from an unfiltered photo.</p>
-<p>For the accuracy of our filter inverter, if the filter of an image is known, the average per-pixel sum of absolute difference (SAD) error summed across three RGB channel for 10000 images was 0.010 whereas the baseline per-pixel SAD error without inversion for 10000 images: 0.085. We are currently working on getting more comprehensive experimentation results on the performance of our filter inverter.</p>
-<p>Laying groundwork for improving the system, we also investigated how scene information could be used, hoping that scene knowledge encode expectations about what colors compose an image. Initial experiments of a separate system to prove this hypothesis were done using a pretrained VGG16 Keras model on Places365 <span class="citation"></span>, which, as the name suggests, provides scene probabilities among a set of common scenes <span class="math inline">\(S\)</span>. Using the same filtered image creation pipeline, we built a corpus of expected distributions for a given scene under any filter. In the training step of this system, we ran through 2000 arbitrary scenes and ran color binning with 25 bins per color, under each filter. Each feature vector <span class="math inline">\(F\)</span> is then length 75. These histograms were distributed across detected scenes according the probability vector given provided by the model, and saved to a final corpus of shape <span class="math inline">\((|\text{filters}| + 1) \times |S| \times |F|\)</span> . The saved feature representation for a given filter and scene was a normalized sum of the distributions that contributed towards it. A prediction of a filter in this system is done simply by running scene detection on the input and referencing the appropriate set of features weighted according to the scene probability vector. Euclidean distance of expected features and input features was used to approximate error, put through softmax to create probabilities for which filter was applied. The distribution of our input should best match a representative distribution for the detected scene under the input’s filter. Trained with a corpus of both 200 and 2000 images, the system outputs correct filter as one of its top two candidates <span class="math inline">\(70\%\)</span> of the time. In both cases, scene information sufficed to predict some of the more apparent filters discussed above, but was limited. It’s clear that scene information is useful, and will be incorporated into the network as another feature.</p>
-<h2 id="qualitative-results" class="unnumbered">Qualitative Results</h2>
-<h3 id="examples" class="unnumbered">Examples</h3>
-<h3 id="failure-cases-filter-detection-failures" class="unnumbered">Failure cases: Filter Detection Failures</h3>
-<h2 id="conclusion-and-future-work" class="unnumbered">Conclusion and Future Work</h2>
-<p>For filter detection, we already have promising performance with simple color histograms as features. From our experiments, we are able to achieve an average accuracy of 78% across a set of 6 filters, each with a different effect on the color curves of our image.</p>
-<p>For filter inversion, our trained models can invert known filters with an error <span class="math inline">\(E\)</span> (Equation 1) of 1%, averaged across all 6 filters. These approaches combined, our end-to-end model is able to achieve an error <span class="math inline">\(E\)</span> of 5.5%, which compares to the error <span class="math inline">\(E&#39;\)</span> of 8.4% between filtered and unfiltered images.</p>
-<p>We believe our system can improve both its filter identification and inversion. We will continue experimenting with different features to feed into the detection models such as histograms in HSV space instead of RGB space, which might quantify perceptual changes to images better than RGB histograms. As mentioned, the color distributions of an image are a function of the subjects and the environment of the image in addition to the filter applied. We plan to incorporate explicit scene information to the model, which we predict will help the model establish a baseline for each scene, further simplifying the classification of the perturbations on the image caused by a filter.</p>
-<p>Supporting our intuition, our preliminary experiments with filter identification using scene information perform better than a random baseline as described in <em>Experiments</em>, meaning there is latent color information embedded in a scene.</p>
-<p>For further granularity, an alternative route we will investigate is running object detection with Mask R-CNN <span class="citation"></span> and running filter detection with objects as features. The objects will then vote on a global filter, using weights derived from their sizes and prediction confidence. As a similar (but more complex) idea to the scene approach, we expect this method to give us the best results as granular objects are expected to have the most uniform color distributions across instances. However, we expect roadblocks due to difficulty of modifying the intensive net required for MaskRCNN.</p>
-<p>To improve filter inversion, the next steps will be removing the discrete filter selection step between the detection and inversion models, directly providing the inversion subsystem with the filter probability vector. This should allow the inversion model to compute more nuanced inversions by combining the inversion of several filters depending on the certainty of the classifier. The result should allow us to create a more generic filter inverter which can take in additional features to enhance the inversion results.</p>
-<p><span>9</span> C. Chen and M. C. Stamm, “Image filter identification using demosaicing residual features,” 2017 IEEE International Conference on Image Processing (ICIP), Beijing, 2017, pp. 4103-4107.</p>
-<p>F. Chollet and others, “Keras”, GitHub, 2015.</p>
-<p>D. P. Kingma and J. Ba, “Adam: A Method for Stochastic Optimization”, 3rd International Conference for Learning Representations, San Diego, 2015.</p>
-<p>M. Pratusevich, “Instagram Filters in 15 Lines of Python”, Practice Python, 2016. <em>Retrieved from URL, https://www.practicepython.org/blog/2016/12/20/instagram-filters-python.html</em>.</p>
-<p>GraphixTV, “Instagram Filter Effects Tutorials”, YouTube, 2017. <em>Retrieved from URL, https://www.youtube.com/playlist?list=PLESCEzav4FyfUIi0RHMkNbQI-9JVr4kJc</em></p>
-<p>H. Kaiming, G. Gkioxari, P. Doll<span>á</span>r and R. B. Girshick, “Mask R-CNN”, Facebook AI Research, 2018.</p>
-<p>B. Zhou, A. Lapedriza, A. Khosla, A. Oliva, and A. Torralba “Places: A 10 million Image Database for Scene Recognition”, IEEE Transactions on Pattern Analysis and Machine Intelligence, 2017.</p>
-<p>C. Chen, C. Chen, J. Xu, and V. Koltun, “Learning to See in the Dark”, CVPR, 2018.</p>
-<p>R. K. Srivastava, J. Masci, F. Gomez and J. Schmidhuber, “Understanding Locally Competitive Networks”, ICLR, 2015.</p>
+          <h2 id="abstract" class="unnumbered">Abstract</h2>
+          <p>Given the prevalence of photo editing and filtering on popular social media platforms such as Snapchat and Instagram, it is becoming more and more difficult for users to identify how the content that they consume everyday have been modified from their original form. Since filtering has become so common, the goal of this project is to give users a means to identify how photos on these platforms are edited and to present a plausible reconstruction of source content.</p>
+          <p>We propose an end-to-end system that will take an image from the user, identify probabilities for which common image filters were applied to the image, and apply the most likely filter inverse. We present both the filter probabilities and the inverted image to the user. We utilize features in the form of color histograms and scene details to extract a sense of natural color distributions and use neural networks both to determine the probabilities for applied filters and to invert an image given its most likely filter.</p>
+          <p>From our experiments, we are able to classify images by the filter applied to it (from our predefined set of six Instagram filters) while distinguishing it from natural (unfiltered) images with an accuracy of 60% to 98% depending on the characteristics of the filter such as the amount of deviation from the original image. Let <span class="math inline">\(E(I, I&#39;)\)</span> be the average per-pixel mean of the sum absolute differences in intensity across all color channels of images <span class="math inline">\(I\)</span> and <span class="math inline">\(I&#39;\)</span> (<em>Equation 1</em>). For inverting images given a known filter, we are able to obtain a pseudo-inverse of the image with an average error <span class="math inline">\(E\)</span> of 1%. End-to-end, our system detects and inverts filters with an average error <span class="math inline">\(E\)</span> of 5.5% between our output image and the original unfiltered version. In comparison, the baseline error <span class="math inline">\(E\)</span> between filtered and unfiltered images was found to be 8.4%.</p>
 
-</div>
-</div>
-<br>
+          <h2 id="teaser-figure" class="unnumbered">Teaser Figure</h2>
+          <div class="row text-center">
+            <img src="images/teaser.png" alt="Architecture overview" width="80%" />
+            <p class="caption">Architecture overview<span data-label="fig:overview"></span></p>
+          </div>
 
-</body></html>
+          <h2 id="introduction" class="unnumbered">Introduction</h2>
+          <p>Filtered photos have become ubiquitous on social media platforms such as Snapchat, Instagram, Flickr, and more. For the casual eye, the subtlety of these filters can make it hard to distinguish between filtered and unfiltered images on social media, leading to a false perceptual model of how natural images look, skewing our expectations about reality. We hope this project will help bring more transparency into how images are often edited by identifying whether a common image filter have been applied to an image, and expose users to the natural state of these images. We believe that transparency in the image editing process is important in raising awareness about deliberate modifications to perceptions of reality, allowing content consumers to enjoy the edited content while being aware of their true nature.</p>
+          <p>Not to be confused with filters in the computer vision setting, which are often used to better extract information from an image, filters in the social media setting describe a predefined set of modifications to an image that attempts enhance its human visual appeal. Most commonly, these filters come in the form of color balance adjustments and can be represented as tweaks to the color curves of an RGB image. A color curve <span class="math inline">\(f: [0, 255] \to [0, 255]\)</span> is a continuous function that remaps the intensities in each color channel. Modification to the color curve allows the user to non-uniformly boost or decrease color intensities at varying ranges to create various effects such as increasing contrast or creating color shifts (e.g. [fig:color_curve] demonstrates a boost of blues in shadows while decreasing blues in highlights). Some filters also include additional effects such as blurring/sharpening using convolution kernels, the addition of borders, and the application of vignette darkening at the edges.</p>
+
+          <div class"row" style="margin-bottom: 2em;">
+            <div class="col-md-3 text-center">
+              <div class="thumbnail">
+                <img src="images/ampitheatre_before.jpg" alt="Example of Color Curve Modification on The Blue Color Channel" width="100%" />
+                <div class="caption">
+                  <p class="caption">Example of Color Curve Modification on The Blue Color Channel<span data-label="fig:color_curve"></span></p>
+                </div>
+              </div>
+
+            </div>
+
+            <div class="col-md-3 text-center">
+              <div class="thumbnail">
+                <img src="images/curve.JPG" alt="Example of Color Curve Modification on The Blue Color Channel" width="100%" />
+                <div class="caption">
+                  <p class="caption">Example of Color Curve Modification on The Blue Color Channel<span data-label="fig:color_curve"></span></p>
+                </div>
+              </div>
+            </div>
+
+            <div class="col-md-3 text-center">
+              <div class="thumbnail">
+                <img src="images/curveAfter.JPG" alt="Example of Color Curve Modification on The Blue Color Channel" width="100%" />
+                <div class="caption">
+                  <p class="caption">Example of Color Curve Modification on The Blue Color Channel<span data-label="fig:color_curve"></span></p>
+                </div>
+              </div>
+
+            </div>
+
+            <div class="col-md-3 text-center">
+              <div class="thumbnail">
+                <img src="images/ampitheatre_after.jpg" alt="Example of Color Curve Modification on The Blue Color Channel" width="100%" />
+                <div class="caption">
+                  <p class="caption">Example of Color Curve Modification on The Blue Color Channel<span data-label="fig:color_curve"></span></p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <p>For the purposes of this project, we limit our scope and define a filter as a pair <span class="math inline">\((f, g)\)</span> where <span class="math inline">\(f: \mathbb{R}^3 \rightarrow \mathbb{R}^3\)</span> is a function that maps every individual color (consisting of 3 channels each with a real value in the <span class="math inline">\([0, 1]\)</span> range) to some color in the same range, and <span class="math inline">\(g \in \mathbb{R}^{3 \times 3}\)</span> is a convolution kernel that can be used for blurring and sharpening among other effects. We assume that a filter is applied first by passing each pixel of an image through <span class="math inline">\(f\)</span>, and then convolving the image with <span class="math inline">\(g\)</span>, extending the edges by repeating the last row and column of pixels as to preserve the shape of the image.</p>
+          <p>While many commercial filters may also contain additional effects such as borders and vignettes, filters are mostly characterized by how they shift the color curves globally and their blur/sharpen/emboss effects. Therefore, for the scope of this project, we choose filters which does not have these additional effect.</p>
+          <p>Though our work relates to many other fields of computer vision, such as image denoising and brightening images <span class="citation"></span>, not much work directly focuses on end to end filter identification or inversion. One publication that we found <span class="citation"></span> for identification depends heavily on prior knowledge of the camera demosaicing algorithm which is not always readily available. We thus chose to develop our own identification system.</p>
+          <p>In many of these settings such as image denoising or brightening, the modifications applied to the image (noise, etc.) are either consistent across the dataset or is known a priori. Our task is different from these previous work as our filter functions are unknown, but we have examples of unfiltered &amp; filtered images. Therefore, we decompose this task of filter inversion into two separate tasks, one is filter identification given an input image and the other is filter inversion given a known filter. Filter identification for an image is a classification task while filter inversion is a regression task estimating the filter inverses.</p>
+          <h2 id="approach" class="unnumbered">Approach</h2>
+          <p>Our approach splits the end-to-end task of filter inversion into two steps:</p>
+          <ul>
+            <li><p>Generate a probability vector for possible filters applied to a given image. (Filter classification)</p></li>
+            <li><p>With the image and the probability vector as inputs, apply a learned inverse filter onto the image to recover the unfiltered image. (Filter inversion)</p></li>
+          </ul>
+          <p>While there are infinitely many filters possible, popular social media platforms have a few pre-selected filters that are widely used. Therefore, we constrain the scope of our filter inversion by assuming input images were filtered at most once by a filter from a known set. To accurately model a real-world application, our list comprises of the following six popular Instagram filters:</p>
+          <p>
+          <ul>
+            <li>Clarendon</li>
+            <li>Gingham</li>
+            <li>Juno</li>
+            <li>Lark</li>
+            <li>Gotham</li>
+            <li>Reyes</li>
+          </ul>
+          </p>
+          <p>Given the scant amount of existing literature on the problem of filter identification aside from <span class="citation"></span>, there were no established processes for filtering large numbers of images using commercial filters. We were prompted to create our own image filtering pipeline. Since Instagram filters are not available outside of their platform, we imitated these filters by manually modifying each color curve. We referenced channel adjustment code from an online article <span class="citation"></span>, which uses <code>numpy</code> functions, specifically <code>linspace</code> and <code>interp</code>, to modify the color curves of each specific channel. We obtained curve parameters for each filter from <span class="citation"></span> and passed them onto the channel adjustment code to create an imitation of commercial filters. We then run each imitation filter over our library of unfiltered images to create our dataset.</p>
+          <h3 id="filter-classification" class="unnumbered">Filter classification</h3>
+          <p>Our approach to filter classification takes in an input image and outputs a probability vector for the possible filters applied to the input image. We utilize a neural network model to generate this probability vector from features extracted from the input image.</p>
+          <p>For feature extraction, because color curves are a major component of many of the popular image filters, we decided to use color histograms to extract global color information from the image. Furthermore, because these color curve modifications are often applied independently in each RGB channel, we create separate color intensity histograms for each color channel and concatenate them together to generate the features for a given image.</p>
+          <p>Note that this low level data can be augmented with scene and object information, premised on the idea that color distributions are correlated to the subjects and the environment of the image. This augmentation has not yet been incorporated into the pipeline.</p>
+          <p>Due to the lack of neural network based approaches in the previous work done in this area, we had no intuition on the appropriate complexity required for our models. Therefore, we first experimented with the simplest models with one layer and few neurons, found it performed poorly, and gradually increased complexity until diminishing return on performance occurred.</p>
+          <p>We utilize Keras <span class="citation"></span> to create a sequential, feed-forward neural network with varying number of layers at different sizes with the ReLU activation function on the hidden layers. The network ends with a softmax layer to obtain a probability vector. We use the ReLU activation function because it has been consistently shown to provide good performance and training speed for neural networks <span class="citation"></span>. We use a cross-entropy loss function and the Adam optimizer <span class="citation"></span> to train our neural network model.</p>
+          <p>One problem we encountered was that because each image passes through 6 different filters and each of these images are in our dataset, we have to ensure that our model has not seen the images before to avoid memorizing previous image color distributions to obtain good results in the testing set. Therefore, we utilize a completely different set of base images for the training and testing set.</p>
+
+          <div class="col-md-12 text-center">
+            <div class="thumbnail">
+              <img src="images/detection-nn.png" alt="Detection NN Architecture" style="width:60.0%; margin-top: 1em;" />
+              <div class="caption">
+                <p class="caption">Detection NN Architecture<span data-label="fig:detection_nn"></span></p>
+              </div>
+            </div>
+          </div>
+
+          <h3 id="filter-inversion" class="unnumbered">Filter inversion</h3>
+          <p>For the inversion of filters, our formalization of a filter is critical. We assume the definition of a filter as a pair <span class="math inline">\((f, g)\)</span> of a function <span class="math inline">\(f\)</span> that maps colors and a convolution kernel <span class="math inline">\(g\)</span>.</p>
+          <p>With this assumption, we design a set neural networks to approximate the behavior of an inverse filter. The specification of the neural network for one filter <span class="math inline">\((f, g)\)</span> is such that given a <span class="math inline">\(3 \times 3\)</span> region of pixels, it should be able to learn and undo the convolution <span class="math inline">\(g\)</span> centered at the middle of the square, then learn and apply the inverse of the function <span class="math inline">\(f\)</span>, finally outputting the unfiltered color of the middle pixel of the patch.</p>
+          <p>We set up a neural network model with an input of <span class="math inline">\(3 \times 3 \times 3\)</span> values to represent the RGB colors of the <span class="math inline">\(3 \times 3\)</span> patch, an output of <span class="math inline">\(3\)</span> values to represent the RGB colors of the center pixel, and three hidden layers with <span class="math inline">\(100\)</span> neurons each, to account for potential non-linearities of <span class="math inline">\(f\)</span>. We note that since <span class="math inline">\((f, g)\)</span> are specific to each filter, we will need to train a separate copy of this model for each of our supported filters.</p>
+          <p>Given a filter, to train a neural network with sufficient data to allow it to generalize properly, we generate 1 million uniformly random <span class="math inline">\(3 \times 3\)</span> RGB patches and apply the filter to all of them. We then store the filtered <span class="math inline">\(3 \times 3\)</span> patches as input <span class="math inline">\(X\)</span> and the center pixel of the unfiltered patches as <span class="math inline">\(y\)</span>. Every such <span class="math inline">\((X, y)\)</span> forms one sample, and we train our neural network on 1 million such samples until validation score plateaus.</p>
+          <p>Finally, to apply filter inversion to a given image known to be the result of a particular filter <span class="math inline">\(f\)</span>, we iterate through the image using a <span class="math inline">\(3 \times 3\)</span> sliding window, and for each step of the iteration we feed the window into the pre-trained neural network corresponding to <span class="math inline">\(f\)</span>. The model outputs the predicted unfiltered color of the pixel at the center of the image, which we store in a copy of the image. Repeating this operation over patches centered at each pixel on the image, we reach the predicted unfiltered image.</p>
+          <p>Note that due to the fact that our model is based on filter functions that we define and implement, it was also possible to attempt to invert all of our filters deterministically that aimed to undo each step of the filter. However, since we do not know the exact function behind the filters used on Instagram, et al. such a method would not be applicable on images filtered using filters whose source code we cannot access, such as images on social media. As a result, we opt for a machine learning method, so that given a sufficiently large dataset of filtered images (alongside their unfiltered counterparts), we can learn to invert any filter that our definition of a filter can represent.</p>
+          <h2 id="experiments" class="unnumbered">Experiments</h2>
+          <p>We perform our experiments using 9000 <span class="math inline">\(128\ \times\ 128\)</span> images from 10 different categories from the MiniPlaces dataset <span class="citation"></span> passed through 6 different filters ([fig:filters]) to create a total dataset of 63000 images (including the original images.) We split these images into 80% training and 20% testing sets with assurance that images from the testing set and their filtered derivatives are not in the training set. Therefore, our training set consists of 50400 images while our testing set consisted of 12600 images.</p>
+          <p><span class="math display">\[\begin{aligned}
+            \text{7200 images} \times \text{6 filters} + \text{7200 original images} &amp;= \text{50400 training images}\\
+            \text{1800 images} \times \text{6 filters} + \text{1800 original images} &amp;= \text{12600 testing images}
+            \end{aligned}\]</span></p>
+            <p>While we experimented with greyscale color histogram at first for its simplicity, the important role of color in filter identification pushed us towards our current feature extraction method. And because filters often modify color curves within the RGB space, we decided to extract three separate color intensity histogram in the RGB channel and concatenate them together as our image feature. We use 255 bins per color channel, which were represented as floats in the range [0, 1]. No meaningful performance gain was observed when increasing the number of bins past 255. Our neural network hyperparameters were tuned through manual search by starting with a simple model and increasing model complexity until no apparent improvements was noticed.</p>
+            <p>Given the simplicity of features we extract, we expected a simple model to provide comparative performance in the filter identification task. However, after experimentation, adding multiple layers to our model increased our model accuracy by upwards of 8%. It is possible that applying a filter might affect an image’s color histogram in more complex ways than we assumed and increasing the number of layers enabled the network to better understand the effect of filter application on an image’s color histogram.</p>
+            <p>Our final neural network contains four size 32 layers, one size 16 layer, two size 8 layers, and an output softmax layer with 7 nodes, in that order. The network is fully connected and every layer except the last uses <em>ReLU</em> activation. The softmax layer produces a probability vector for the predicted filter. An input feature vector for this model contains <span class="math inline">\(255 \times 3 = 765\)</span> features. The main hyperparameter for future experimentation is the number of bins used here, or in general, what we choose to feed into our network. When stepping through increasing bin count, we found performance plateaued at 255 bins.</p>
+            <p>We trained our neural network classifier for a total of 100 epochs with a batch size of 128 using the Adam optimizer <span class="citation"></span> and the cross-entropy loss function.</p>
+            <p>One improvement to note is that we did not utilize validation set (which we should have) during our training process so we do not have an exact measure of overfitting. However, we evaluated our model performance different number of epochs and there were no noticeable increase accuracy from stopping before or going past 100 epochs.</p>
+
+            <div class="col-md-12 text-center">
+              <div class="thumbnail">
+                <img src="images/confusionMatrix.jpg" alt="Confusion matrix for detection NN" style="width:60.0%" />
+                <div class="caption">
+                  <p class="caption">Confusion matrix for detection NN<span data-label="fig:confusion_matrix"></span></p>
+                </div>
+              </div>
+            </div>
+
+            <p>Our initial approach evaluated our model based on the overall accuracy in the prediction (filter with maximum probability from our probability vector). However, we noticed visually subtler filters naturally had lower identification rates, so we refined our statistics to distinguish success for different filters. We thus also looked at the precision, recall, F1 score, and the confusion matrix to evaluate model performance on individual filters. For comparison, the baseline accuracy of a random classifier is 0.143.</p>
+            <table class="table table-bordered">
+              <thead>
+                <tr class="header">
+                  <th align="center"></th>
+                  <th align="center"><em>Identity</em></th>
+                  <th align="center"><em>Clarendon</em></th>
+                  <th align="center"><em>Gingham</em></th>
+                  <th align="center"><em>Juno</em></th>
+                  <th align="center"><em>Lark</em></th>
+                  <th align="center"><em>Gotham</em></th>
+                  <th align="center"><em>Reyes</em></th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr class="odd">
+                  <td align="center"><em>Precision</em></td>
+                  <td align="center">0.635</td>
+                  <td align="center">0.760</td>
+                  <td align="center">0.944</td>
+                  <td align="center">0.625</td>
+                  <td align="center">0.647</td>
+                  <td align="center">0.879</td>
+                  <td align="center">0.921</td>
+                </tr>
+                <tr class="even">
+                  <td align="center"><em>Recall</em></td>
+                  <td align="center">0.554</td>
+                  <td align="center">0.693</td>
+                  <td align="center">0.984</td>
+                  <td align="center">0.638</td>
+                  <td align="center">0.695</td>
+                  <td align="center">0.939</td>
+                  <td align="center">0.929</td>
+                </tr>
+                <tr class="odd">
+                  <td align="center"><em>F1</em></td>
+                  <td align="center">0.591</td>
+                  <td align="center">0.725</td>
+                  <td align="center">0.964</td>
+                  <td align="center">0.631</td>
+                  <td align="center">0.670</td>
+                  <td align="center">0.908</td>
+                  <td align="center">0.925</td>
+                </tr>
+              </tbody>
+            </table>
+            <table class="table table-bordered">
+              <thead>
+                <tr class="header">
+                  <th align="center"></th>
+                  <th align="center"><em>Identity</em></th>
+                  <th align="center"><em>Clarendon</em></th>
+                  <th align="center"><em>Gingham</em></th>
+                  <th align="center"><em>Juno</em></th>
+                  <th align="center"><em>Lark</em></th>
+                  <th align="center"><em>Gotham</em></th>
+                  <th align="center"><em>Reyes</em></th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr class="odd">
+                  <td align="center"><em>Precision</em></td>
+                  <td align="center">0.643</td>
+                  <td align="center">0.684</td>
+                  <td align="center">0.954</td>
+                  <td align="center">0.681</td>
+                  <td align="center">0.677</td>
+                  <td align="center">0.904</td>
+                  <td align="center">0.906</td>
+                </tr>
+                <tr class="even">
+                  <td align="center"><em>Recall</em></td>
+                  <td align="center">0.583</td>
+                  <td align="center">0.786</td>
+                  <td align="center">0.975</td>
+                  <td align="center">0.580</td>
+                  <td align="center">0.673</td>
+                  <td align="center">0.946</td>
+                  <td align="center">0.935</td>
+                </tr>
+                <tr class="odd">
+                  <td align="center"><em>F1</em></td>
+                  <td align="center">0.612</td>
+                  <td align="center">0.731</td>
+                  <td align="center">0.964</td>
+                  <td align="center">0.626</td>
+                  <td align="center">0.675</td>
+                  <td align="center">0.925</td>
+                  <td align="center">0.920</td>
+                </tr>
+              </tbody>
+            </table>
+            <table class="table table-bordered">
+              <thead>
+                <tr class="header">
+                  <th align="center"></th>
+                  <th align="center"><em>Identity</em></th>
+                  <th align="center"><em>Clarendon</em></th>
+                  <th align="center"><em>Gingham</em></th>
+                  <th align="center"><em>Juno</em></th>
+                  <th align="center"><em>Lark</em></th>
+                  <th align="center"><em>Gotham</em></th>
+                  <th align="center"><em>Reyes</em></th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr class="odd">
+                  <td align="center"><em>Precision</em></td>
+                  <td align="center">0.620</td>
+                  <td align="center">0.720</td>
+                  <td align="center">0.936</td>
+                  <td align="center">0.568</td>
+                  <td align="center">0.781</td>
+                  <td align="center">0.894</td>
+                  <td align="center">0.940</td>
+                </tr>
+                <tr class="even">
+                  <td align="center"><em>Recall</em></td>
+                  <td align="center">0.550</td>
+                  <td align="center">0.789</td>
+                  <td align="center">0.984</td>
+                  <td align="center">0.775</td>
+                  <td align="center">0.463</td>
+                  <td align="center">0.956</td>
+                  <td align="center">0.883</td>
+                </tr>
+                <tr class="odd">
+                  <td align="center"><em>F1</em></td>
+                  <td align="center">0.583</td>
+                  <td align="center">0.753</td>
+                  <td align="center">0.959</td>
+                  <td align="center">0.656</td>
+                  <td align="center">0.582</td>
+                  <td align="center">0.924</td>
+                  <td align="center">0.910</td>
+                </tr>
+              </tbody>
+            </table>
+            <p>One interesting trend to examine is the performance difference among different filters. Filters like Gingham, Gotham, and Reyes easily achieve an <em>F1 score</em> of over 0.9 while other filters’ <em>F1 scores</em> all fall below 0.8. We believe that this is attributed to how large of a visual effect these filters have on the output image, as illustrated in [fig:filters].</p>
+            <p>These filters are quite obvious when compared side by side to the original filter, or more technically, consider the difference in tone shifts between each of these different filters. We believe the tone shifts within Gingham, Gotham, and Reyes appear more unnatural (Gingham and Gotham gives a red tint while Reyes gives an overall white tint to the image) whereas Juno, Lark, and Clarendon appear more natural by adding blueish, greenish, or yellowish lighting to the image, making them harder to distinguish from an unfiltered photo.</p>
+            <p>For the accuracy of our filter inverter, if the filter of an image is known, the average per-pixel sum of absolute difference (SAD) error summed across three RGB channel for 10000 images was 0.010 whereas the baseline per-pixel SAD error without inversion for 10000 images: 0.085. We are currently working on getting more comprehensive experimentation results on the performance of our filter inverter.</p>
+            <p>Laying groundwork for improving the system, we also investigated how scene information could be used, hoping that scene knowledge encode expectations about what colors compose an image. Initial experiments of a separate system to prove this hypothesis were done using a pretrained VGG16 Keras model on Places365 <span class="citation"></span>, which, as the name suggests, provides scene probabilities among a set of common scenes <span class="math inline">\(S\)</span>. Using the same filtered image creation pipeline, we built a corpus of expected distributions for a given scene under any filter. In the training step of this system, we ran through 2000 arbitrary scenes and ran color binning with 25 bins per color, under each filter. Each feature vector <span class="math inline">\(F\)</span> is then length 75. These histograms were distributed across detected scenes according the probability vector given provided by the model, and saved to a final corpus of shape <span class="math inline">\((|\text{filters}| + 1) \times |S| \times |F|\)</span> . The saved feature representation for a given filter and scene was a normalized sum of the distributions that contributed towards it. A prediction of a filter in this system is done simply by running scene detection on the input and referencing the appropriate set of features weighted according to the scene probability vector. Euclidean distance of expected features and input features was used to approximate error, put through softmax to create probabilities for which filter was applied. The distribution of our input should best match a representative distribution for the detected scene under the input’s filter. Trained with a corpus of both 200 and 2000 images, the system outputs correct filter as one of its top two candidates <span class="math inline">\(70\%\)</span> of the time. In both cases, scene information sufficed to predict some of the more apparent filters discussed above, but was limited. It’s clear that scene information is useful, and will be incorporated into the network as another feature.</p>
+            <h2 id="qualitative-results" class="unnumbered">Qualitative Results</h2>
+
+            <h3 id="examples" class="unnumbered">Examples</h3>
+
+            <h4>End-to-End Lark Examples</h4>
+            <div class"row" style="margin-bottom: 2em;">
+              <div class="col-md-4 text-center">
+                <div class="thumbnail">
+                  <img src="images/0.png"width="100%" />
+                  <div class="caption">
+                    <p class="caption">Original image</p>
+                  </div>
+                </div>
+              </div>
+
+              <div class="col-md-4 text-center">
+                <div class="thumbnail">
+                  <img src="images/filtered_0.png" width="100%" />
+                  <div class="caption">
+                    <p class="caption">Filtered image</p>
+                  </div>
+                </div>
+              </div>
+
+              <div class="col-md-4 text-center">
+                <div class="thumbnail">
+                  <img src="images/inverted_0_lark.png" width="100%" />
+                  <div class="caption">
+                    <p class="caption">Inverted image</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <h4>End-to-End Clarendon Examples</h4>
+            <div class"row" style="margin-bottom: 2em;">
+              <div class="col-md-4 text-center">
+                <div class="thumbnail">
+                  <img src="images/17.png"width="100%" />
+                  <div class="caption">
+                    <p class="caption">Original image</p>
+                  </div>
+                </div>
+              </div>
+
+              <div class="col-md-4 text-center">
+                <div class="thumbnail">
+                  <img src="images/filtered_17.png" width="100%" />
+                  <div class="caption">
+                    <p class="caption">Filtered image</p>
+                  </div>
+                </div>
+              </div>
+
+              <div class="col-md-4 text-center">
+                <div class="thumbnail">
+                  <img src="images/inverted_17_clarendon.png" width="100%" />
+                  <div class="caption">
+                    <p class="caption">Inverted image</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <h4>End-to-End Reyes Examples</h4>
+            <div class"row" style="margin-bottom: 2em;">
+              <div class="col-md-4 text-center">
+                <div class="thumbnail">
+                  <img src="images/2.png"width="100%" />
+                  <div class="caption">
+                    <p class="caption">Original image</p>
+                  </div>
+                </div>
+              </div>
+
+              <div class="col-md-4 text-center">
+                <div class="thumbnail">
+                  <img src="images/filtered_2.png" width="100%" />
+                  <div class="caption">
+                    <p class="caption">Filtered image</p>
+                  </div>
+                </div>
+              </div>
+
+              <div class="col-md-4 text-center">
+                <div class="thumbnail">
+                  <img src="images/inverted_2_reyes.png" width="100%" />
+                  <div class="caption">
+                    <p class="caption">Inverted image</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+
+            <h3 id="failure-cases-filter-detection-failures" class="unnumbered">Failure cases: Filter Detection Failures</h3>
+            <h4>End-to-End Gingham Examples</h4>
+            <div class"row" style="margin-bottom: 2em;">
+              <div class="col-md-4 text-center">
+                <div class="thumbnail">
+                  <img src="images/4.png"width="100%" />
+                  <div class="caption">
+                    <p class="caption">Original image</p>
+                  </div>
+                </div>
+              </div>
+
+              <div class="col-md-4 text-center">
+                <div class="thumbnail">
+                  <img src="images/filtered_4.png" width="100%" />
+                  <div class="caption">
+                    <p class="caption">Filtered image</p>
+                  </div>
+                </div>
+              </div>
+
+              <div class="col-md-4 text-center">
+                <div class="thumbnail">
+                  <img src="images/inverted_4_gingham.png" width="100%" />
+                  <div class="caption">
+                    <p class="caption">Inverted image</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <h4>End-to-End Juno Examples</h4>
+            <div class"row" style="margin-bottom: 2em;">
+              <div class="col-md-4 text-center">
+                <div class="thumbnail">
+                  <img src="images/43.png"width="100%" />
+                  <div class="caption">
+                    <p class="caption">Original image</p>
+                  </div>
+                </div>
+              </div>
+
+              <div class="col-md-4 text-center">
+                <div class="thumbnail">
+                  <img src="images/filtered_43.png" width="100%" />
+                  <div class="caption">
+                    <p class="caption">Filtered image</p>
+                  </div>
+                </div>
+              </div>
+
+              <div class="col-md-4 text-center">
+                <div class="thumbnail">
+                  <img src="images/inverted_43_juno.png" width="100%" />
+                  <div class="caption">
+                    <p class="caption">Inverted image</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <h4>End-to-End Gotham Examples</h4>
+            <div class"row" style="margin-bottom: 2em;">
+              <div class="col-md-4 text-center">
+                <div class="thumbnail">
+                  <img src="images/22.png"width="100%" />
+                  <div class="caption">
+                    <p class="caption">Original image</p>
+                  </div>
+                </div>
+              </div>
+
+              <div class="col-md-4 text-center">
+                <div class="thumbnail">
+                  <img src="images/filtered_22.png" width="100%" />
+                  <div class="caption">
+                    <p class="caption">Filtered image</p>
+                  </div>
+                </div>
+              </div>
+
+              <div class="col-md-4 text-center">
+                <div class="thumbnail">
+                  <img src="images/inverted_22_gotham.png" width="100%" />
+                  <div class="caption">
+                    <p class="caption">Inverted image</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+
+            <h2 id="conclusion-and-future-work" class="unnumbered">Conclusion and Future Work</h2>
+            <p>For filter detection, we already have promising performance with simple color histograms as features. From our experiments, we are able to achieve an average accuracy of 78% across a set of 6 filters, each with a different effect on the color curves of our image.</p>
+            <p>For filter inversion, our trained models can invert known filters with an error <span class="math inline">\(E\)</span> (Equation 1) of 1%, averaged across all 6 filters. These approaches combined, our end-to-end model is able to achieve an error <span class="math inline">\(E\)</span> of 5.5%, which compares to the error <span class="math inline">\(E&#39;\)</span> of 8.4% between filtered and unfiltered images.</p>
+            <p>We believe our system can improve both its filter identification and inversion. We will continue experimenting with different features to feed into the detection models such as histograms in HSV space instead of RGB space, which might quantify perceptual changes to images better than RGB histograms. As mentioned, the color distributions of an image are a function of the subjects and the environment of the image in addition to the filter applied. We plan to incorporate explicit scene information to the model, which we predict will help the model establish a baseline for each scene, further simplifying the classification of the perturbations on the image caused by a filter.</p>
+            <p>Supporting our intuition, our preliminary experiments with filter identification using scene information perform better than a random baseline as described in <em>Experiments</em>, meaning there is latent color information embedded in a scene.</p>
+            <p>For further granularity, an alternative route we will investigate is running object detection with Mask R-CNN <span class="citation"></span> and running filter detection with objects as features. The objects will then vote on a global filter, using weights derived from their sizes and prediction confidence. As a similar (but more complex) idea to the scene approach, we expect this method to give us the best results as granular objects are expected to have the most uniform color distributions across instances. However, we expect roadblocks due to difficulty of modifying the intensive net required for MaskRCNN.</p>
+            <p>To improve filter inversion, the next steps will be removing the discrete filter selection step between the detection and inversion models, directly providing the inversion subsystem with the filter probability vector. This should allow the inversion model to compute more nuanced inversions by combining the inversion of several filters depending on the certainty of the classifier. The result should allow us to create a more generic filter inverter which can take in additional features to enhance the inversion results.</p>
+            <p><span>9</span> C. Chen and M. C. Stamm, “Image filter identification using demosaicing residual features,” 2017 IEEE International Conference on Image Processing (ICIP), Beijing, 2017, pp. 4103-4107.</p>
+            <p>F. Chollet and others, “Keras”, GitHub, 2015.</p>
+            <p>D. P. Kingma and J. Ba, “Adam: A Method for Stochastic Optimization”, 3rd International Conference for Learning Representations, San Diego, 2015.</p>
+            <p>M. Pratusevich, “Instagram Filters in 15 Lines of Python”, Practice Python, 2016. <em>Retrieved from URL, https://www.practicepython.org/blog/2016/12/20/instagram-filters-python.html</em>.</p>
+            <p>GraphixTV, “Instagram Filter Effects Tutorials”, YouTube, 2017. <em>Retrieved from URL, https://www.youtube.com/playlist?list=PLESCEzav4FyfUIi0RHMkNbQI-9JVr4kJc</em></p>
+            <p>H. Kaiming, G. Gkioxari, P. Doll<span>á</span>r and R. B. Girshick, “Mask R-CNN”, Facebook AI Research, 2018.</p>
+            <p>B. Zhou, A. Lapedriza, A. Khosla, A. Oliva, and A. Torralba “Places: A 10 million Image Database for Scene Recognition”, IEEE Transactions on Pattern Analysis and Machine Intelligence, 2017.</p>
+            <p>C. Chen, C. Chen, J. Xu, and V. Koltun, “Learning to See in the Dark”, CVPR, 2018.</p>
+            <p>R. K. Srivastava, J. Masci, F. Gomez and J. Schmidhuber, “Understanding Locally Competitive Networks”, ICLR, 2015.</p>
+
+          </div>
+        </div>
+        <br>
+
+      </body></html>
