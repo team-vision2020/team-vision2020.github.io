@@ -1,149 +1,341 @@
-\documentclass[a4paper, 11pt]{article}
-\usepackage{comment} % enables the use of multi-line comments (\ifx \fi) 
-\usepackage{lipsum} %This package just generates Lorem Ipsum filler text. 
-\usepackage{fullpage} % changes the 
+\documentclass[11pt]{article}
+\usepackage{comment}
+\usepackage{lipsum}
+\usepackage{fullpage}
 \usepackage{amsmath}
 \usepackage{amssymb}
+\usepackage{tikz}
+\usepackage{tikz-cd}
+\usepackage{float}
+\usepackage{cleveref}
+\usepackage{xifthen}
+\usepackage{subfig}
+\usepackage
+[
+        letterpaper,% other options: a3paper, a5paper, etc
+        left=1cm,
+        right=4cm,
+        top=2cm,
+        bottom=2cm,
+        % use vmargin=2cm to make vertical margins equal to 2cm.
+        % us  hmargin=3cm to make horizontal margins equal to 3cm.
+        % use margin=3cm to make all margins  equal to 3cm.
+]
+{geometry}
 
+\setlength{\marginparwidth}{3cm}
 \DeclareMathOperator{\dist}{dist}
 
 \begin{document}
-%Header-Make sure you update this information!!!!
 \noindent
 \large\textbf{Automatic Image Filter Identification} \hfill \textbf{Vision 20/20} \\
-\normalsize CS4476, Project Proposal \hfill Gokmen, Dumenci, Ye, Lo \\
+\normalsize CS4476, Midterm Project Update \hfill Gokmen, Dumenci, Ye, Lo \\
 Prof. Parikh \hfill Georgia Institute of Technology
 
-\section*{Problem Statement}
-With the prevalence of Instagram and related social networks, filters on images are more common than ever. We attempt to build a filter identification system so viewers can be more aware of how the contents they consume are edited. Our proposed system will take a filtered image and identify what filter has been applied. We currently constrain considered filters to a simplified set that perform global (position invariant) filtering. These filters can change color, brightness, contrast, etc. and do not include rotation, shear, and transformation. Immediate extensions include expanding the filters set to include vignette effects, which vary based on location in the image, and training the system to identify the type of film camera used. A separate but related problem is to create a system for filter inversion, outputting a raw image based on a filtered image and known filter, which will be considered, time permitting.
+\section*{Abstract}
+Given the prevalence of photo editing and filtering on popular social media platforms such as Snapchat and Instagram, it is becoming more and more difficult for users to identify how the content that they consume everyday have been modified from their original form. Since filtering has become so common, the goal of this project is to give users a means to identify how photos on these platforms are edited and to present a plausible reconstruction of source content.
+
+We propose an end-to-end system that will take an image from the user, identify probabilities for which common image filters were applied to the image, and apply the most likely filter inverse. We present both the filter probabilities and the inverted image to the user. We utilize features in the form of color histograms and scene details to extract a sense of natural color distributions and use neural networks both to determine the probabilities for applied filters and to invert an image given its most likely filter.
+
+% Detection & inversion:
+% Roundtrip per-pixel SAD error for 10000 images: 0.05538734147397006
+% Baseline per-pixel SAD error for 10000 images: 0.08457501071028349
+
+% Only inversion, known filters:
+% Roundtrip per-pixel SAD error for 10000 images: 0.010018754974558564
+% Baseline per-pixel SAD error for 10000 images: 0.08495726214719272
+
+From our experiments, we are able to classify images by the filter applied to it (from our predefined set of six Instagram filters) while distinguishing it from natural (unfiltered) images with an accuracy of 60\% to 98\% depending on the characteristics of the filter such as the amount of deviation from the original image. Let $E(I, I')$ be the average per-pixel mean of the sum absolute differences in intensity across all color channels of images $I$ and $I'$ (\textit{Equation 1}). For inverting images given a known filter, we are able to obtain a pseudo-inverse of the image with an average error $E$ of 1\%. End-to-end, our system detects and inverts filters with an average error $E$ of 5.5\% between our output image and the original unfiltered version. In comparison, the baseline error $E$ between filtered and unfiltered images was found to be 8.4\%.
+
+\newcommand{\cimg}[2] {
+    \begin{minipage}{#2}\centering \includegraphics[width=#2]{#1}\end{minipage}
+}
+
+\section*{Teaser Figure}
+
+\begin{figure}[H]
+    \centering
+    \begin{tikzcd}
+        \cimg{images/gingham.jpg}{2cm} \arrow[r] &
+        \text{Filter detector} \arrow{rrr}{\text{Probabilities}}[swap]{\max P(\text{Gingham})} &
+         &
+         &
+        \text{Filter inverter} \arrow[r] &
+        \cimg{images/original.jpg}{2cm}
+    \end{tikzcd}
+
+    \caption{Architecture overview}
+    \label{fig:overview}
+\end{figure}
 
 
-% - Data:
-%   - scrape plain tons of images
-%     - sources: flickr, google
-%     - apply filters in data scrape: ImageMagick
-%   - scrape filtered images from instagrams
-  
-%   Extended Application:
-%     - Identifying film camera
-% - Analysis:
-%   - performance of system based on image content, filter type (invertibility)
-% - Script for data collection
+\section*{Introduction}
+Filtered photos have become ubiquitous on social media platforms such as Snapchat, Instagram, Flickr, and more. For the casual eye, the subtlety of these filters can make it hard to distinguish between filtered and unfiltered images on social media, leading to a false perceptual model of how natural images look, skewing our expectations about reality. We hope this project will help bring more transparency into how images are often edited by identifying whether a common image filter have been applied to an image, and expose users to the natural state of these images. We believe that transparency in the image editing process is important in raising awareness about deliberate modifications to perceptions of reality, allowing content consumers to enjoy the edited content while being aware of their true nature.
+
+Not to be confused with filters in the computer vision setting, which are often used to better extract information from an image, filters in the social media setting describe a predefined set of modifications to an image that attempts enhance its human visual appeal. Most commonly, these filters come in the form of color balance adjustments and can be represented as tweaks to the color curves of an RGB image. A color curve $f: [0, 255] \to [0, 255]$ is a continuous function that remaps the intensities in each color channel. Modification to the color curve allows the user to non-uniformly boost or decrease color intensities at varying ranges to create various effects such as increasing contrast or creating color shifts (e.g. \cref{fig:color_curve} demonstrates a boost of blues in shadows while decreasing blues in highlights). Some filters also include additional effects such as blurring/sharpening using convolution kernels, the addition of borders, and the application of vignette darkening at the edges.
+
+\begin{figure}[H]
+    \centering
+    \begin{tikzcd}
+        \cimg{images/ampitheatre_before.jpg}{2cm} \arrow[r] &
+        \cimg{images/curve.JPG}{2cm} \arrow[r] &
+        \cimg{images/curveAfter.JPG}{2cm} \arrow[r] &
+        \cimg{images/ampitheatre_after.jpg}{2cm}
+    \end{tikzcd}
+
+    \caption{Example of Color Curve Modification on The Blue Color Channel}
+    \label{fig:color_curve}
+\end{figure}
+
+For the purposes of this project, we limit our scope and define a filter as a pair $(f, g)$ where $f: \mathbb{R}^3 \rightarrow \mathbb{R}^3$ is a function that maps every individual color (consisting of 3 channels each with a real value in the $[0, 1]$ range) to some color in the same range, and $g \in \mathbb{R}^{3 \times 3}$ is a convolution kernel that can be used for blurring and sharpening among other effects. We assume that a filter is applied first by passing each pixel of an image through $f$, and then convolving the image with $g$, extending the edges by repeating the last row and column of pixels as to preserve the shape of the image.
+
+While many commercial filters may also contain additional effects such as borders and vignettes, filters are mostly characterized by how they shift the color curves globally and their blur/sharpen/emboss effects. Therefore, for the scope of this project, we choose filters which does not have these additional effect.
+
+Though our work relates to many other fields of computer vision, such as image denoising and brightening images \cite{Dark}, not much work directly focuses on end to end filter identification or inversion. One publication that we found \cite{IEEE_Inversion} for identification depends heavily on prior knowledge of the camera demosaicing algorithm which is not always readily available. We thus chose to develop our own identification system.
+
+In many of these settings such as image denoising or brightening, the modifications applied to the image (noise, etc.) are either consistent across the dataset or is known a priori. Our task is different from these previous work as our filter functions are unknown, but we have examples of unfiltered \& filtered images. Therefore, we decompose this task of filter inversion into two separate tasks, one is filter identification given an input image and the other is filter inversion given a known filter. Filter identification for an image is a classification task while filter inversion is a regression task estimating the filter inverses.
 
 \section*{Approach}
 
-\subsection*{Learning End-to-End using a CNN}
-For this project, we will try two approaches in parallel. The first, `brute force' approach will involve the use of a Convolutional Neural Network. The CNN will take a filtered image as an input and output the hypothesized filter.
-$$f(I) : \text{Image} \to \text{Filter}$$
-We will explore various proven CNN architectures such as AlexNet, VGG, and ResNet, and compare their performance in filter identification. Because CNNs are designed for picking up image structure, which is not necessarily relevant to filter identification, various preprocessing steps such as blurring will be tested to attempt to improve the results. We believe that there's a possibility for the CNN to learn non-goal features such as image structure, and perform poorly on global properties such as filters applied. Therefore, we will experiment with an alternate method in parallel, following a more structured approach designed to imitate human filter perception.
-
-\subsection*{Learning on Preselected Features}
-When a trained eye considers a scene with a forest, it normally expects colors in the greens and browns. When a filter is applied to this scene, we hypothesize that the shift in these expected colors allows the recognition of the filter. Then, imitating human perception, given a filtered image we want to recognize its scene and compute metrics, and run it through a classifier that returns the applied filter.
-
-Formally, we define $y = m(x)$ to be a function from an image $x$ to a vector in $R^n$ where $n$ is the number of metrics we calculate. Each entry $y_i$ is the result of the calculation of the $i$-th metric on the image $x$. Similarly, we define $z = s(x)$ to be a function from an image $x$ to a vector in $R^k$ where $k$ is the total number of distinct scenes we are capable of identifying. Each element $z_i$ is the probability that the image $x$ is that of the scene $i$, therefore $z$ is a probability vector where each element is nonnegative and the elements sum to $1$.
-
-Then, our target function $g$ is a classifier that, given the metrics and the scene probability vector for an image, outputs a filter probability vector:
-$$g(m(x), s(x)) : (\text{Metrics},\ \text{Scene}) \to \text{Filter}$$
-
-%More concretely, given an image $I$, compute metrics $M' = m(I)$ and scene $s$ (using AlexNet trained on Places \cite{Places}, etc.) Then, find a similar scene (``forest'', ``skyline'', ``indoors'', ...) in our metrics set built of unfiltered images, and note the metrics $M_0, \dots, M_k$ for the scene under filters $0$ (no filter) through $k$. It's likely that our image is filtered under $i$ where $\dist(M_i, M')$ is lowest. The selected metrics function $m$ will be crucial for this approach. To decide on the most descriptive, we will try various such $m$s, such as color histograms, global brightness, saturation and contrast ratio.
-
-% The metric function $m$ will be a feature vector resulting from a variety of preprocessing and feature extraction techniques determined experimentally. The scene function $s$ will be an AlexNet trained on the Places dataset\cite{Places}.
-
-For every training image vector $x$, we apply the filter $y$ and run a scene classifier such as AlexNet trained on Places \cite{Places} to get a scene probability vector $s'$. We then compute the feature vector $m$ containing our predetermined image metrics, and store the instance $g(m, s) = y$ in our knowledge base. We then train our model for $g$, likely a Decision Tree classifier, on this knowledge base.
-
-Then, to use the classifier on an image vector $x'$, we compute the scene probability vector $s'$ using the same scene classifier, and the metrics vector $m'$. We then input the pair $m', s'$ to our model for $g$ to guess the applicable filter for the image.
-
-\subsubsection*{Proposed Metrics}
-
+Our approach splits the end-to-end task of filter inversion into two steps:
 \begin{itemize}
-    \item Quantized color histogram
-    
-    Quantize the full color spectrum into $n$ colors (proposed $n \approx 50$), and bin image colors into the quantized colors. We will experiment with various color spaces such as RGB, HSV, and CIELab
-    
-    \item Brightness histogram
-    
-    Convert the image into grayscale, and bin the pixel intensities into a brightness histogram. Contract the histogram space as needed to $n$ bins (proposed $n \approx 20$.)
+    \item Generate a probability vector for possible filters applied to a given image. (Filter classification)
+    \item With the image and the probability vector as inputs, apply a learned inverse filter onto the image to recover the unfiltered image. (Filter inversion)
 \end{itemize}
+% The first generates a probability vector for the possible filters applied to an image. The second takes the most likely filter prediction, and applies the learned inverse filter onto the image to recover the original image.
 
-More metrics can be considered during experimentation, and metrics that return a vector such as histograms will be unpacked into the metric vector by counting each element as an individual metric.
+While there are infinitely many filters possible, popular social media platforms have a few pre-selected filters that are widely used. Therefore, we constrain the scope of our filter inversion by assuming input images were filtered at most once by a filter from a known set. To accurately model a real-world application, our list comprises of the following six popular Instagram filters:
 
-% To measure closeness of histograms, we can compare various loss measures, starting with Euclidean distance. We can map distances to confidences for each filter with a softmax step. We will initially choose to not smooth our images to encourage more characterizable histograms.
-% Since the filters aren't necessarily invertible, it would be harder to map the input image backwards with each filter and see which produces metrics most typical of the scene.
+\def\filterimagewidth{3cm}
+\begin{figure}[H]
+    \centering
+    \subfloat[Original image]{\label{fig:original}\includegraphics[width=\filterimagewidth]{images/original.jpg}}
+    \subfloat[Clarendon]{\label{fig:original}\includegraphics[width=\filterimagewidth]{images/clarendon.jpg}}
+    \subfloat[Gingham]{\label{fig:original}\includegraphics[width=\filterimagewidth]{images/gingham.jpg}}
+    \subfloat[Juno]{\label{fig:original}\includegraphics[width=\filterimagewidth]{images/juno.jpg}}\\
+    \subfloat[Lark]{\label{fig:original}\includegraphics[width=\filterimagewidth]{images/lark.jpg}}
+    \subfloat[Gotham]{\label{fig:original}\includegraphics[width=\filterimagewidth]{images/gotham.jpg}}
+    \subfloat[Reyes]{\label{fig:original}\includegraphics[width=\filterimagewidth]{images/reyes.jpg}}
+    \caption{Selected filters}
+    \label{fig:filters}
+\end{figure}
 
-\subsubsection*{Improvements}
-An immediate improvement to the feature approach stems from the concern that metrics can have high variance even within scenes, introducing ambiguity to the classification process. 
+Given the scant amount of existing literature on the problem of filter identification aside from \cite{IEEE_Inversion}, there were no established processes for filtering large numbers of images using commercial filters. We were prompted to create our own image filtering pipeline. Since Instagram filters are not available outside of their platform, we imitated these filters by manually modifying each color curve. We referenced channel adjustment code from an online article \cite{Instafilters}, which uses \verb|numpy| functions, specifically \verb|linspace| and \verb|interp|, to modify the color curves of each specific channel. We obtained curve parameters for each filter from \cite{Instafilters_tutorial} and passed them onto the channel adjustment code to create an imitation of commercial filters. We then run each imitation filter over our library of unfiltered images to create our dataset.
 
-To help resolve this, we can use an object detector (YOLOv2, MobileNet, ...) and tag objects in the scene. We can then treat these objects as their own images, and compute metrics for each object. This would be done within the context of the scene. (A teapot in a room is a different entity than a teapot in a forest.) As a result, each entity will have its own predictions for which filter was used locally, contributing to the decision of the filter used for the overall image. We could have a uniform vote based on most likely filter per entity, or we could combine entities' confidences to produce image level confidences.
+\subsection*{Filter classification}
+Our approach to filter classification takes in an input image and outputs a probability vector for the possible filters applied to the input image. We utilize a neural network model to generate this probability vector from features extracted from the input image.
 
-% I commented this out because the classifier takes care of this especially when pruning is involved -Cem
+For feature extraction, because color curves are a major component of many of the popular image filters, we decided to use color histograms to extract global color information from the image. Furthermore, because these color curve modifications are often applied independently in each RGB channel, we create separate color intensity histograms for each color channel and concatenate them together to generate the features for a given image.
 
-% Further, we could be more deliberate in the voting process. The variance of the selected metric $\sigma$ within its (scene, object) set will give us a rough measure of how reliable the metric is in that specific context. We could reduce an entity's vote if $\sigma$ is high, factoring in a confidence in the classification.
+Note that this low level data can be augmented with scene and object information, premised on the idea that color distributions are correlated to the subjects and the environment of the image. This augmentation has not yet been incorporated into the pipeline.
 
-% Intuitively, our system attempts to guess pre-filtered versions of our input. The higher the prior variance, the less precision our entity classification gives us, because we are less sure what the pre-filtered entity should look like. For example, consider tree's bark for specifically color. There's high confidence prior color distribution will be in the range of brown, with low deviation. However, if we consider a car, the prior color distribution has high variance because it is artificial and can be painted many colors. We can thus use variance to weight our entity's votes. If a tree picks filter A, and a car picks filter B, we output filter A, because a car's belief is mostly noise. We may consider sub-segmenting and refining search for entities with highly stable metrics, such as the tires of a car.
+Due to the lack of neural network based approaches in the previous work done in this area, we had no intuition on the appropriate complexity required for our models. Therefore, we first experimented with the simplest models with one layer and few neurons, found it performed poorly, and gradually increased complexity until diminishing return on performance occurred.
 
-% For extension to vignetting and non-global filters, we can distinguish filter metrics based on entity location. We can artificially manipulate our training images to account for this. Typical filters may brighten already bright spots, prompting another extension in tagging bright reflections/sunlight through a window, which conventional tagging systems may not find interesting. Because our input segmenting does not have reliable color, we may want to try to augment tagging with a focus on texture.
+We utilize Keras \cite{Keras} to create a sequential, feed-forward neural network with varying number of layers at different sizes with the ReLU activation function on the hidden layers. The network ends with a softmax layer to obtain a probability vector. We use the ReLU activation function because it has been consistently shown to provide good performance and training speed for neural networks \cite{ReLU}. We use a cross-entropy loss function and the Adam optimizer \cite{Adam} to train our neural network model.
 
-% Example: We have a cup in the top left corner. We find distribution of typical cups, but not in the top left corner. We force a cup in our library to the top left corner, and to apply our vignette filter, find a match.
-%I feel that this might be too specific and too hard to do. Like we'd need to have a library of images and identify which object is there and the place it there (If we want specific objects)
-% It is pretty hard - this would be an extension - Joel
-Another possible avenue of improvement involves the selection of metrics. The metrics we picked can be analyzed using statistical methods to reduce the number of features. Methods such as autoencoding or principal component analysis can be implemented to combine and eliminate similar metrics such that only those providing the most information would be used for the main classifier. %This would still provide a sufficient contrast to the CNN method, as the algorithm would be learning how much each metric relates to the classification problem, instead of learning the metrics and the measure in tandem.
+% TODO(chunlok): Add this back if needed.
+One problem we encountered was that because each image passes through 6 different filters and each of these images are in our dataset, we have to ensure that our model has not seen the images before to avoid memorizing previous image color distributions to obtain good results in the testing set. Therefore, we utilize a completely different set of base images for the training and testing set.
 
-% \subsubsection*{Outline}
-% When we get a photo, we segment, and tag each object. (Note this might be difficult, due to color distortion, we can train on distorted images.)
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.6\textwidth]{images/detection-nn.png}
+    \caption{Detection NN Architecture}
+    \label{fig:detection_nn}
+\end{figure}
 
-% \begin{itemize}
-%     \item Check library for tags, find the filter profile that best matches.
-    
-%     Discard if tag deviation is too high, since then tag tells us little about expected profile.
-%     \item Weight votes
-%     $$W = P(\text{tag}) * P(\text{metric distribution } | \text{ tag})$$ where the conditional probability can be estimated by Euclidean distance in our metric space.
-% \end{itemize}
+\subsection*{Filter inversion}
+For the inversion of filters, our formalization of a filter is critical. We assume the definition of a filter as a pair $(f, g)$ of a function $f$ that maps colors and a convolution kernel $g$.
 
-% Quick note: if some entity has multiple possible tags, can it contribute towards multiple prior distributions? (X is .5 chance dog, .5 chance tree, do we add its colors to dog and tree? How would we weight?)  (I believe above formula accounts for this)? How do we deal with multiple tags at all? :(
+With this assumption, we design a set neural networks to approximate the behavior of an inverse filter. The specification of the neural network for one filter $(f, g)$ is such that given a $3 \times 3$ region of pixels, it should be able to learn and undo the convolution $g$ centered at the middle of the square, then learn and apply the inverse of the function $f$, finally outputting the unfiltered color of the middle pixel of the patch.
 
-\section*{Experiments and Results}
+We set up a neural network model with an input of $3 \times 3 \times 3$ values to represent the RGB colors of the $3 \times 3$ patch, an output of $3$ values to represent the RGB colors of the center pixel, and three hidden layers with $100$ neurons each, to account for potential non-linearities of $f$. We note that since $(f, g)$ are specific to each filter, we will need to train a separate copy of this model for each of our supported filters.
 
-\subsection*{Dataset}
-The aforementioned methods require large amounts of data for training, as a result of filters having identifiable characteristics only when certain knowledge about the prior image is known. Examples of such knowledge depend on the identification metric used, and can include color or brightness histograms, gradient matrices.
+Given a filter, to train a neural network with sufficient data to allow it to generalize properly, we generate 1 million uniformly random $3 \times 3$ RGB patches and apply the filter to all of them. We then store the filtered $3 \times 3$ patches as input $X$ and the center pixel of the unfiltered patches as $y$. Every such $(X, y)$ forms one sample, and we train our neural network on 1 million such samples until validation score plateaus.
 
-As the source of this data, we intend to use Yahoo's YFCC100M dataset \cite{Yahoo} consisting of 100M images. We will apply the considered filters to a reasonably trainable subset of these images (to be decided empirically), generating pairs of filter type and filtered image. This dataset will be then be used in both the CNN method and the structured method in learning filter identification.
+Finally, to apply filter inversion to a given image known to be the result of a particular filter $f$, we iterate through the image using a $3 \times 3$ sliding window, and for each step of the iteration we feed the window into the pre-trained neural network corresponding to $f$. The model outputs the predicted unfiltered color of the pixel at the center of the image, which we store in a copy of the image. Repeating this operation over patches centered at each pixel on the image, we reach the predicted unfiltered image.
 
-\subsection*{Implementation}
-For ease of development, we will utilize Python and its various libraries for image processing and manipulation and for machine learning algorithms. We will use skimage for our image processing and feature extraction, sklearn for non neural network based machine learning algorithms, and pytorch for implementing and testing our neural network architectures. We will also leverage existing libraries such as sklearn for validation and testing. If there are no existing libraries that perform our required functionalities, we will code one up ourselves. 
+Note that due to the fact that our model is based on filter functions that we define and implement, it was also possible to attempt to invert all of our filters deterministically that aimed to undo each step of the filter. However, since we do not know the exact function behind the filters used on Instagram, et al. such a method would not be applicable on images filtered using filters whose source code we cannot access, such as images on social media. As a result, we opt for a machine learning method, so that given a sufficiently large dataset of filtered images (alongside their unfiltered counterparts), we can learn to invert any filter that our definition of a filter can represent.
 
-\subsection*{Filters}
-Without loss of generality, we will select 5 filters based on a study by Canva on the most used Instagram filters \cite{Canva} which are the following:
-\begin{itemize}
-    \item Clarendon
-    \item Gingham
-    \item Juno
-    \item Lark
-    \item Mayfair
-\end{itemize}
-Luckily, these filters does not introduce any vignetting effects and are all global filters and thus are suited to our purposes. Other filters may be added during the later stages of the study.
+\section*{Experiments}
+We perform our experiments using 9000 $128\ \times\ 128$ images from 10 different categories from the MiniPlaces dataset \cite{Places} passed through 6 different filters (\cref{fig:filters}) to create a total dataset of 63000 images (including the original images.) We split these images into 80\% training and 20\% testing sets with assurance that images from the testing set and their filtered derivatives are not in the training set. Therefore, our training set consists of 50400 images while our testing set consisted of 12600 images.
 
-\subsection*{Experiments}
-Our initial experimentation would limit both the number of filters we try to predict and the variation in these images to see if good results are possible under these constrained conditions. We will first evaluate each approach first based on a limited set of filters and limited set of images containing similar color distributions and then expand the existing methods to classify multiple filters. Since it is possible that color distributions will not be indicative of the result of filters, we will also limit our training images to be of similar scene and context. The progression of experimentation on applying both NN methods and heuristic methods will be based on the following:
-\begin{itemize}
-    \item Applying a single filter to training images of similar scenes/color distributions and test our methods in classifying filter type
-    \item Expand training images to include a variety of scene context and color distribution while applying a single filter
-    \item Expand filter set to multiple filters and test performance
-    \item Expand and test our heuristic methods to see if we can improve performance
-\end{itemize}
+\begin{figure}[H]
+    \centering
+    \begin{align*}
+        \text{7200 images} \times \text{6 filters} + \text{7200 original images} &= \text{50400 training images}\\
+        \text{1800 images} \times \text{6 filters} + \text{1800 original images} &= \text{12600 testing images}
+    \end{align*}
+    \caption{Detection dataset}
+    \label{fig:detection_dataset}
+\end{figure}
 
-We consider each step to be success after reaching $\geq 90\%$ accuracy on classifying image filters using the respective classification methods. We will also pay attention to various other metrics such as precision and recall to see how our models are performing in each category.
+While we experimented with greyscale color histogram at first for its simplicity, the important role of color in filter identification pushed us towards our current feature extraction method. And because filters often modify color curves within the RGB space, we decided to extract three separate color intensity histogram in the RGB channel and concatenate them together as our image feature. We use 255 bins per color channel, which were represented as floats in the range [0, 1]. No meaningful performance gain was observed when increasing the number of bins past 255. Our neural network hyperparameters were tuned through manual search by starting with a simple model and increasing model complexity until no apparent improvements was noticed.
 
-These experiments should reveal how effective various neural network architectures are in detecting global image filter information and the ``naturalness'' of an image. They should also reveal whether filtered images in general are distinguishable from real photos and how good are our heuristic measures are at detecting that difference. It is uncertain whether heuristic based methods or CNNs are effective at capturing "naturalness" information and these experiments will reveal whether more carefully crafted feature extractions and preprocessing techniques are required to obtain good results. 
+Given the simplicity of features we extract, we expected a simple model to provide comparative performance in the filter identification task. However, after experimentation, adding multiple layers to our model increased our model accuracy by upwards of 8\%. It is possible that applying a filter might affect an image's color histogram in more complex ways than we assumed and increasing the number of layers enabled the network to better understand the effect of filter application on an image's color histogram.
 
-\section*{Extension: Filter Inversion}
-An extension to the project upon successful completion of the primary goals is the inversion of identified filters. While the filters involved in the project are mostly functions on the pixel values individually, because the set of possible pixel values is a discrete, finite set, most of our filters involve rounding/clipping. As a result, the underlying functions are not one-to-one and thus their inversion might cause similar but distinct colors in the original image to map to identical colors in the filter-inverted image. We will apply filtering methods to correct this and to make the image look as much like the original while trying to mitigate resolution loss at the same time. Coupled with the principle goals of the project, the aim of the extension would be to produce the unfiltered original of any given input image that is the result of the application of a single filter to an unfiltered image.
+Our final neural network contains four size 32 layers, one size 16 layer, two size 8 layers, and an output softmax layer with 7 nodes, in that order. The network is fully connected and every layer except the last uses \textit{ReLU} activation. The softmax layer produces a probability vector for the predicted filter. An input feature vector for this model contains $255 \times 3 = 765$ features. The main hyperparameter for future experimentation is the number of bins used here, or in general, what we choose to feed into our network. When stepping through increasing bin count, we found performance plateaued at 255 bins.
+
+We trained our neural network classifier for a total of 100 epochs with a batch size of 128 using the Adam optimizer \cite{Adam} and the cross-entropy loss function.
+
+One improvement to note is that we did not utilize validation set (which we should have) during our training process so we do not have an exact measure of overfitting. However, we evaluated our model performance different number of epochs and there were no noticeable increase accuracy from stopping before or going past 100 epochs.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.6\textwidth]{images/confusionMatrix.jpg}
+    \caption{Confusion matrix for detection NN}
+    \label{fig:confusion_matrix}
+\end{figure}
+
+Our initial approach evaluated our model based on the overall accuracy in the prediction (filter with maximum probability from our probability vector). However, we noticed visually subtler filters naturally had lower identification rates, so we refined our statistics to distinguish success for different filters. We thus also looked at the precision, recall, F1 score, and the confusion matrix to evaluate model performance on individual filters. For comparison, the baseline accuracy of a random classifier is 0.143.
+
+\begin{figure}[H]
+    \centering
+    \begin{tabular}{|c|c|c|c|c|c|c|c|}
+        \hline    & \textit{Identity} & \textit{Clarendon} & \textit{Gingham} & \textit{Juno} & \textit{Lark} & \textit{Gotham} & \textit{Reyes}\\
+        \hline \textit{Precision} & 0.635 & 0.760 & 0.944 & 0.625 & 0.647 & 0.879 & 0.921\\
+        \hline \textit{Recall}    & 0.554 & 0.693 & 0.984 & 0.638 & 0.695 & 0.939 & 0.929 \\
+        \hline \textit{F1}        & 0.591 & 0.725 & 0.964 & 0.631 & 0.670 & 0.908 & 0.925\\
+        \hline
+    \end{tabular}
+    \caption{Detection metrics with 100 bins (over 5 runs) $Acc_{avg} = 0.776, Acc_{random} = 0.143$}
+    \label{fig:filter_metrics}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \begin{tabular}{|c|c|c|c|c|c|c|c|}
+        \hline    & \textit{Identity} & \textit{Clarendon} & \textit{Gingham} & \textit{Juno} & \textit{Lark} & \textit{Gotham} & \textit{Reyes}\\
+        \hline \textit{Precision} & 0.643 & 0.684 & 0.954 & 0.681 & 0.677 & 0.904 & 0.906\\
+        \hline \textit{Recall}    & 0.583 & 0.786 & 0.975 & 0.580 & 0.673 & 0.946 & 0.935 \\
+        \hline \textit{F1}        & 0.612 & 0.731 & 0.964 & 0.626 & 0.675 & 0.925 & 0.920\\
+        \hline
+    \end{tabular}
+    \caption{Detection metrics with \textbf{255 bins} (over 5 runs) $\mathbf{Acc_{avg} = 0.783}, Acc_{random} = 0.143$}
+    \label{fig:filter_metrics}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \begin{tabular}{|c|c|c|c|c|c|c|c|}
+        \hline    & \textit{Identity} & \textit{Clarendon} & \textit{Gingham} & \textit{Juno} & \textit{Lark} & \textit{Gotham} & \textit{Reyes}\\
+        \hline \textit{Precision} & 0.620 & 0.720 & 0.936 & 0.568 & 0.781 & 0.894 & 0.940\\
+        \hline \textit{Recall}    & 0.550 & 0.789 & 0.984 & 0.775 & 0.463 & 0.956 & 0.883 \\
+        \hline \textit{F1}        & 0.583 & 0.753 & 0.959 & 0.656 & 0.582 & 0.924 & 0.910\\
+        \hline
+    \end{tabular}
+    \caption{Detection metrics with 300 bins (over 5 runs) $Acc_{avg} = 0.7719, Acc_{random} = 0.143$}
+    \label{fig:filter_metrics}
+\end{figure}
+
+One interesting trend to examine is the performance difference among different filters. Filters like Gingham, Gotham, and Reyes easily achieve an \textit{F1 score} of over 0.9 while other filters’ \textit{F1 scores} all fall below 0.8. We believe that this is attributed to how large of a visual effect these filters have on the output image, as illustrated in \cref{fig:filters}.
+
+These filters are quite obvious when compared side by side to the original filter, or more technically, consider the difference in tone shifts between each of these different filters. We believe the tone shifts within Gingham, Gotham, and Reyes appear more unnatural (Gingham and Gotham gives a red tint while Reyes gives an overall white tint to the image) whereas Juno, Lark, and Clarendon appear more natural by adding blueish, greenish, or yellowish lighting to the image, making them harder to distinguish from an unfiltered photo.
+
+For the accuracy of our filter inverter, if the filter of an image is known, the average per-pixel sum of absolute difference (SAD) error summed across three RGB channel for 10000 images was 0.010 whereas the baseline per-pixel SAD error without inversion for 10000 images: 0.085. We are currently working on getting more comprehensive experimentation results on the performance of our filter inverter.
+
+Laying groundwork for improving the system, we also investigated how scene information could be used, hoping that scene knowledge encode expectations about what colors compose an image. Initial experiments of a separate system to prove this hypothesis were done using a pretrained VGG16 Keras model on Places365 \cite{Places}, which, as the name suggests, provides scene probabilities among a set of common scenes $S$. Using the same filtered image creation pipeline, we built a corpus of expected distributions for a given scene under any filter. In the training step of this system, we ran through 2000 arbitrary scenes and ran color binning with 25 bins per color, under each filter. Each feature vector $F$ is then length 75. These histograms were distributed across detected scenes according the probability vector given provided by the model, and saved to a final corpus of shape $(|\text{filters}| + 1) \times |S| \times |F|$ . The saved feature representation for a given filter and scene was a normalized sum of the distributions that contributed towards it.
+A prediction of a filter in this system is done simply by running scene detection on the input and referencing the appropriate set of features weighted according to the scene probability vector. Euclidean distance of expected features and input features was used to approximate error, put through softmax to create probabilities for which filter was applied. The distribution of our input should best match a representative distribution for the detected scene under the input's filter. Trained with a corpus of both 200 and 2000 images, the system outputs correct filter as one of its top two candidates $70\%$ of the time. In both cases, scene information sufficed to predict some of the more apparent filters discussed above, but was limited. It's clear that scene information is useful, and will be incorporated into the network as another feature.
+
+\section*{Qualitative Results}
+
+\subsection*{Examples}
+\begin{figure}[H]
+    \centering
+    \subfloat[Original image]{\label{fig:original}\includegraphics[width=\filterimagewidth]{images/0.png}}
+    \subfloat[Filtered image]{\label{fig:original}\includegraphics[width=\filterimagewidth]{images/filtered_0.png}}
+    \subfloat[Inverted image]{\label{fig:original}\includegraphics[width=\filterimagewidth]{images/inverted_0_lark.png}}
+    \caption{End-to-end \textit{Lark} example}
+    \label{fig:filters}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \subfloat[Original image]{\label{fig:original}\includegraphics[width=\filterimagewidth]{images/17.png}}
+    \subfloat[Filtered image]{\label{fig:original}\includegraphics[width=\filterimagewidth]{images/filtered_17.png}}
+    \subfloat[Inverted image]{\label{fig:original}\includegraphics[width=\filterimagewidth]{images/inverted_17_clarendon.png}}
+    \caption{End-to-end \textit{Clarendon} example}
+    \label{fig:filters}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \subfloat[Original image]{\label{fig:original}\includegraphics[width=\filterimagewidth]{images/2.png}}
+    \subfloat[Filtered image]{\label{fig:original}\includegraphics[width=\filterimagewidth]{images/filtered_2.png}}
+    \subfloat[Inverted image]{\label{fig:original}\includegraphics[width=\filterimagewidth]{images/inverted_2_reyes.png}}
+    \caption{End-to-end \textit{Reyes} example}
+    \label{fig:filters}
+\end{figure}
+
+\subsection*{Failure cases: Filter Detection Failures}
+\begin{figure}[H]
+    \centering
+    \subfloat[Original image]{\label{fig:original}\includegraphics[width=\filterimagewidth]{images/4.png}}
+    \subfloat[Filtered image]{\label{fig:original}\includegraphics[width=\filterimagewidth]{images/filtered_4.png}}
+    \subfloat[Inverted image]{\label{fig:original}\includegraphics[width=\filterimagewidth]{images/inverted_4_gingham.png}}
+    \caption{End-to-end \textit{Gingham} example}
+    \label{fig:filters}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \subfloat[Original image]{\label{fig:original}\includegraphics[width=\filterimagewidth]{images/43.png}}
+    \subfloat[Filtered image]{\label{fig:original}\includegraphics[width=\filterimagewidth]{images/filtered_43.png}}
+    \subfloat[Inverted image]{\label{fig:original}\includegraphics[width=\filterimagewidth]{images/inverted_43_juno.png}}
+    \caption{End-to-end \textit{Juno} example}
+    \label{fig:filters}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \subfloat[Original image]{\label{fig:original}\includegraphics[width=\filterimagewidth]{images/22.png}}
+    \subfloat[Filtered image]{\label{fig:original}\includegraphics[width=\filterimagewidth]{images/filtered_22.png}}
+    \subfloat[Inverted image]{\label{fig:original}\includegraphics[width=\filterimagewidth]{images/inverted_22_gotham.png}}
+    \caption{End-to-end \textit{Gotham} example}
+    \label{fig:filters}
+\end{figure}
+
+\section*{Conclusion and Future Work}
+For filter detection, we already have promising performance with simple color histograms as features. From our experiments, we are able to achieve an average accuracy of 78\% across a set of 6 filters, each with a different effect on the color curves of our image.
+
+For filter inversion, our trained models can invert known filters with an error $E$ (Equation 1) of 1\%, averaged across all 6 filters. These approaches combined, our end-to-end model is able to achieve an error $E$ of 5.5\%, which compares to the error $E'$ of 8.4\% between filtered and unfiltered images.
+
+% I think the below sentence sounds like a rehash, not a conclusion.
+% The application of this project is to give users a better means to identify how content they consume on social media platforms are edited and present them with the original content as social media platforms and thus filter edited content become more and more prevalent in our world. This system that we present takes in an image without knowing whether a filtered has been applied and produces not only a probability vector for which possible filter has been applied and provides an attempt at inverting the filter. Through utilizing color channel histograms as features of our image and using Neural Networks to model the classification task and the inversion filter. From our experiments, we are able to achieve an average accuracy of 0.78 across 6 different filters, each with a different effect on the color curves of our image. In total, our current system achieves an average of 2\% error per pixel when comparing our system output to an unfiltered image.
+We believe our system can improve both its filter identification and inversion. We will continue experimenting with different features to feed into the detection models such as histograms in HSV space instead of RGB space, which might quantify perceptual changes to images better than RGB histograms. As mentioned, the color distributions of an image are a function of the subjects and the environment of the image in addition to the filter applied. We plan to incorporate explicit scene information to the model, which we predict will help the model establish a baseline for each scene, further simplifying the classification of the perturbations on the image caused by a filter.
+
+Supporting our intuition, our preliminary experiments with filter identification using scene information perform better than a random baseline as described in \textit{Experiments}, meaning there is latent color information embedded in a scene.
+
+For further granularity, an alternative route we will investigate is running object detection with Mask R-CNN \cite{MaskRCNN} and running filter detection with objects as features. The objects will then vote on a global filter, using weights derived from their sizes and prediction confidence. As a similar (but more complex) idea to the scene approach, we expect this method to give us the best results as granular objects are expected to have the most uniform color distributions across instances. However, we expect roadblocks due to difficulty of modifying the intensive net required for MaskRCNN.
+
+To improve filter inversion, the next steps will be removing the discrete filter selection step between the detection and inversion models, directly providing the inversion subsystem with the filter probability vector. This should allow the inversion model to compute more nuanced inversions by combining the inversion of several filters depending on the certainty of the classifier. The result should allow us to create a more generic filter inverter which can take in additional features to enhance the inversion results.
 
 \begin{thebibliography}{9}
-\bibitem{Yahoo} B. Thomee, D.A. Shamma, G. Friedland, B. Elizalde, K. Ni, D. Poland, D. Borth, L. Li. \emph{YFCC100M: The New Data in Multimedia Research}. Communications of the ACM, 59(2), pp. 64-73, 2016.
+\bibitem{IEEE_Inversion}
+C. Chen and M. C. Stamm, ``Image filter identification using demosaicing residual features,'' 2017 IEEE International Conference on Image Processing (ICIP), Beijing, 2017, pp. 4103-4107.
 
-\bibitem{Canva} Canva. \emph{Popular Instagram Filters}. https://www.canva.com/learn/popular-instagram-filters/
+\bibitem{Keras}
+F. Chollet and others, ``Keras'', GitHub, 2015.
 
-\bibitem{Places} B. Zhou, A. Lapedriza, A. Khosla, A. Oliva, and A. Torralba \emph{Places: A 10 million Image Database for Scene Recognition}. IEEE Transactions on Pattern Analysis and Machine Intelligence, 2017.
+\bibitem{Adam}
+D. P. Kingma and J. Ba, ``Adam: A Method for Stochastic Optimization'', 3rd International Conference for Learning Representations, San Diego, 2015.
+
+\bibitem{Instafilters}
+M. Pratusevich, ``Instagram Filters in 15 Lines of Python'', Practice Python, 2016. \textit{Retrieved from URL, https://www.practicepython.org/blog/2016/12/20/instagram-filters-python.html}.
+
+\bibitem{Instafilters_tutorial}
+GraphixTV, ``Instagram Filter Effects Tutorials'', YouTube, 2017. \textit{Retrieved from URL,
+https://www.youtube.com/playlist?list=PLESCEzav4FyfUIi0RHMkNbQI-9JVr4kJc}
+
+\bibitem{MaskRCNN}
+H. Kaiming, G. Gkioxari, P. Doll{\'{a}}r and R. B. Girshick, ``Mask R-CNN'', Facebook AI Research, 2018.
+
+\bibitem{Places} B. Zhou, A. Lapedriza, A. Khosla, A. Oliva, and A. Torralba ``Places: A 10 million Image Database for Scene Recognition'', IEEE Transactions on Pattern Analysis and Machine Intelligence, 2017.
+
+\bibitem{Dark}
+C. Chen, C. Chen, J. Xu, and V. Koltun, ``Learning to See in the Dark'', CVPR, 2018.
+
+\bibitem{ReLU}
+R. K. Srivastava, J. Masci, F. Gomez and J. Schmidhuber, ``Understanding Locally Competitive Networks'', ICLR, 2015.
 
 \end{thebibliography}
 \end{document}
