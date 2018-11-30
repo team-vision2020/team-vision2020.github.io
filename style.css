@@ -1,0 +1,9 @@
+table {
+  display: table !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+}
+
+img {
+    text-align: center !important;
+}
